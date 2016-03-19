@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html>
+  {% include head.html %}
   <head>
     <title>{{ page.title }}</title>
     <!-- link to main stylesheet -->
     <link rel="stylesheet" type="text/css" href="/css/main.css">
   </head>
   <body>
+
+    {% include header.html %}
     <nav>
       <ul>
 	<li><a href="/">Home</a></li>
@@ -14,11 +17,14 @@
 	<li><a href="/blog">Blog</a></li>
       </ul>
     </nav>
-    <div class="container">
+    <div class="page-content">
+      <div class="wrap">
       
       {{ content }}
-      
+      </div>
     </div><!-- /.container -->
+
+    {% include footer.html %}
     <footer>
       <ul>
 	<li><a href="mailto:gtcxg@hotmail.com">email</a></li>
