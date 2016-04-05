@@ -1,0 +1,7 @@
+除了mysql的日志之外，可以通过抓包来观察mysql server的行为。
+
+* tcpdump
+  #+BEGIN_SRC sh
+    tcpdump -i wlan0 -s 0 -l -w - dst port 3306  
+  #+END_SRC
+

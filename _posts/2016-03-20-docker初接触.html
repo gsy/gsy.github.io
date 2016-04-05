@@ -1,0 +1,94 @@
+<div id="outline-container-sec-1" class="outline-2">
+    <h2 id="sec-1">docker安装</h2>
+    <div class="outline-text-2" id="text-1">
+	<ul class="org-ul">
+	    <li>通过curl下载docker安装包。
+	    </li>
+	</ul>
+	<div class="org-src-container">
+
+	    <pre class="src src-sh">curl -fsSL https://get.docker.com/ | sh
+	    </pre>
+	</div>
+	<ul class="org-ul">
+	    <li>验证安装
+		<div class="org-src-container">
+
+		    <pre class="src src-sh">docker run hello-world
+		    </pre>
+		</div>
+		<p>
+		    需要sudo权限。如果希望以xxx用户的身份也能运行，执行命令：
+		</p>
+		<div class="org-src-container">
+
+		    <pre class="src src-sh">sudo usermod -aG docker xxx
+		    </pre>
+		</div>
+		<p>
+		    将xxx添加到docker的用户组中。
+		</p>
+	    </li>
+	</ul>
+    </div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+    <h2 id="sec-2">Images &amp; Containers</h2>
+    <div class="outline-text-2" id="text-2">
+	<ul class="org-ul">
+	    <li>container
+		极简的linux系统。
+	    </li>
+	    <li>image
+		可以转载到container的软件。image可以是简单的执行一次就结束的程序，比如说hello-world，也可以是非常复杂的比如说是database这种等待用户输入，返回结果，一直循环下去运行的程序。
+	    </li>
+	</ul>
+	<p>
+	    在执行docker run hello-world命令时：
+	</p>
+	<ul class="org-ul">
+	    <li>检查本地是否有hello-world这个image
+	    </li>
+	    <li>如果没有，从docker hub上下载。国内的download速度很慢啊，托某长城的福
+	    </li>
+	    <li>将hello-world装载到container中，并且执行
+	    </li>
+	</ul>
+    </div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+    <h2 id="sec-3">docker hub</h2>
+    <div class="outline-text-2" id="text-3">
+	<p>
+	    docker hub类型git hub，可以创建账号，建立个人仓库，将自己创建的image push到docker hub上分享，也可以通过docker pull从docker hub上下载image。
+	</p>
+    </div>
+</div>
+
+
+
+<div id="outline-container-sec-4" class="outline-2">
+    <h2 id="sec-4">docker命令</h2>
+    <div class="outline-text-2" id="text-4">
+	<ul class="org-ul">
+	    <li>docker images
+		列出已经下载到本地的所有image
+	    </li>
+	    <li>docker login &#x2013;username &#x2013;email &#x2013;password
+		登录docker hub
+	    </li>
+	    <li>docker tag 
+		给docker image id起别名，通过名字可以找到对应的image
+	    </li>
+	    <li>docker push
+		push image到docker hub
+	    </li>
+	    <li>docker pull
+		从docker hub上下载image
+	    </li>
+	    <li>docker run
+		在container中执行image
+	    </li>
+	</ul>
+    </div>
+</div>

@@ -1,0 +1,120 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. CSS Modules</a>
+<ul>
+<li><a href="#sec-1-1">1.1. CSS Box Model</a>
+<ul>
+<li><a href="#sec-1-1-1">1.1.1. content area</a></li>
+<li><a href="#sec-1-1-2">1.1.2. padding area</a></li>
+<li><a href="#sec-1-1-3">1.1.3. border area</a></li>
+<li><a href="#sec-1-1-4">1.1.4. margin area</a></li>
+<li><a href="#sec-1-1-5">1.1.5. 例子</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> CSS Modules</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>Selectors
+</li>
+<li>Box Model
+</li>
+<li>Backgroud and Borders
+</li>
+<li>Text Effects
+</li>
+<li>Transformations
+</li>
+<li>Animations
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> CSS Box Model</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+CSS 盒模型是 CSS 规范的一个模块，它定义了一个长方形的盒子，每个盒子拥有各自的内边距和外边距，并根据视觉格式化模型来对元素进行布局。
+在一个html文档中，每个元素都用一个矩形盒子来表示。渲染引擎负责决定盒子的大小，诸如颜色、背景、边框等属性，以及盒子的位置。
+在CSS中，使用盒子模型来描述上述的矩形盒子，盒子模型描述了一个元素占用的空间大小。每个盒子有四个边界：margin, border, padding以及content。
+<a href="../box_model.png">box<sub>model</sub></a>
+</p>
+</div>
+<div id="outline-container-sec-1-1-1" class="outline-4">
+<h4 id="sec-1-1-1"><span class="section-number-4">1.1.1</span> content area</h4>
+<div class="outline-text-4" id="text-1-1-1">
+<p>
+content area，顾名思义，是元素真正内容占用的空间。通常包含背景，颜色或者图片。CSS的box-sizing属性在默认状态下，盒子模型计算的是content area的大小，CSS属性width, min-width, max-width, height, min-height, max-height控制的都是content area的大小。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-1-2" class="outline-4">
+<h4 id="sec-1-1-2"><span class="section-number-4">1.1.2</span> padding area</h4>
+<div class="outline-text-4" id="text-1-1-2">
+<p>
+padding area是内边框，如果content area设置了background， color或者image，那么这些属性会拓展到内边框里，所以padding area可以看成是content area的延伸。padding area的维度属性是padding-box width和padding-box height。padding的大小可以设置padding-top,padding-right,padding-bottom,padding-left或者简写的padding来改变。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-1-3" class="outline-4">
+<h4 id="sec-1-1-3"><span class="section-number-4">1.1.3</span> border area</h4>
+<div class="outline-text-4" id="text-1-1-3">
+<p>
+border area套着padding area，维度属性是border-box width和border-box height。可以设置border-width字段或者简写的border字段去改变。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-1-4" class="outline-4">
+<h4 id="sec-1-1-4"><span class="section-number-4">1.1.4</span> margin area</h4>
+<div class="outline-text-4" id="text-1-1-4">
+<p>
+margin area是用一个空白的空间跟临近的元素区别开来。可以通过margin-top,margin-right,margin-bottom,margin-left字段或者简写的margin来设置margin area的大小。两个元素的margin有的时候会重叠，这时候margin的大小是两元素中最大的margin，margin重叠称为margin collapsing。会产生margin collapse的情况：
+</p>
+<ul class="org-ul">
+<li>相邻的两个元素
+<div class="org-src-container">
+
+<pre class="src src-html">&lt;p&gt;The bottom margin of this paragraph is collapsed...&lt;/p&gt;
+ &lt;p&gt;...with the top margin of this paragraph.&lt;/p&gt;
+</pre>
+</div>
+<p>
+第一个p元素的margin-bottom和第二个p元素的margin-top会重叠成较大的一个margin
+</p>
+</li>
+<li>parent和它的第一个/最后一个元素
+parent的top与第一个元素的top重叠，parent的bottom与最后一个元素的bottom重叠
+</li>
+<li>空block
+自己的margin-top和margin-bottom重叠。    
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-1-5" class="outline-4">
+<h4 id="sec-1-1-5"><span class="section-number-4">1.1.5</span> 例子</h4>
+<div class="outline-text-4" id="text-1-1-5">
+<pre class="example">
+    div {
+    width: 320px;
+    padding: 10px;
+    border: 5px solid gray;
+    margin: 0; 
+}
+</pre>
+<p>
+盒子的宽度是：320px(content width) + 10*2(left+right padding) + 5*2(left+right border) + 0*2(left+right margin) = 350px
+计算公式是：
+total width = content width + padding(left+right) + border(left+right) + margin(left+right)
+total height = content height + padding(left+right) + border(left+right) + margin(left+right)
+</p>
+</div>
+</div>
+</div>
+</div>

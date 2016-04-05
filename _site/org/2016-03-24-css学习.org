@@ -1,0 +1,59 @@
+#+BEGIN_HTML
+---
+layout: post
+title: css盒模型
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+
+* 1. CSS Box Model
+  CSS 盒模型是 CSS 规范的一个模块，它定义了一个长方形的盒子，每个盒子拥有各自的内边距和外边距，并根据视觉格式化模型来对元素进行布局。
+  在一个html文档中，每个元素都用一个矩形盒子来表示。渲染引擎负责决定盒子的大小，诸如颜色、背景、边框等属性，以及盒子的位置。
+  在CSS中，使用盒子模型来描述上述的矩形盒子，盒子模型描述了一个元素占用的空间大小。每个盒子有四个边界：margin, border, padding以及content。
+  
+  #+BEGIN_HTML
+  <img src="/assets/img/box_model.png" title="css box model"></img>
+  #+END_HTML
+** 1.1 content area
+   content area，顾名思义，是元素真正内容占用的空间。通常包含背景，颜色或者图片。CSS的box-sizing属性在默认状态下，盒子模型计算的是content area的大小，CSS属性width, min-width, max-width, height, min-height, max-height控制的都是content area的大小。
+** 1.2 padding area
+   padding area是内边框，如果content area设置了background， color或者image，那么这些属性会拓展到内边框里，所以padding area可以看成是content area的延伸。padding area的维度属性是padding-box width和padding-box height。padding的大小可以设置padding-top,padding-right,padding-bottom,padding-left或者简写的padding来改变。
+** 1.3 border area
+   border area套着padding area，维度属性是border-box width和border-box height。可以设置border-width字段或者简写的border字段去改变。
+** 1.4 margin area
+    margin area是用一个空白的空间跟临近的元素区别开来。可以通过margin-top,margin-right,margin-bottom,margin-left字段或者简写的margin来设置margin area的大小。两个元素的margin有的时候会重叠，这时候margin的大小是两元素中最大的margin，margin重叠称为margin collapsing。会产生margin collapse的情况：
+    - 相邻的两个元素
+      #+BEGIN_SRC html
+<p>The bottom margin of this paragraph is collapsed...</p>
+ <p>...with the top margin of this paragraph.</p>
+      #+END_SRC
+      第一个p元素的margin-bottom和第二个p元素的margin-top会重叠成较大的一个margin
+    - parent和它的第一个/最后一个元素
+      parent的top与第一个元素的top重叠，parent的bottom与最后一个元素的bottom重叠
+    - 空block
+      自己的margin-top和margin-bottom重叠。    
+** 1.5 例子
+    #+BEGIN_SRC 
+    div {
+    width: 320px;
+    padding: 10px;
+    border: 5px solid gray;
+    margin: 0; 
+}
+    #+END_SRC
+    盒子的宽度是：
+    #+BEGIN_HTML
+    <code>320px(content width) + 10*2(left+right padding) + 5*2(left+right border) + 0*2(left+right margin) = 350px</code>
+    #+END_HTML    
+    计算公式是：
+    #+BEGIN_HTML
+    <code>total width = content width + padding(left+right) + border(left+right) + margin(left+right)</code>    
+    <br/>
+    <code>total height = content height + padding(left+right) + border(left+right) + margin(left+right)</code>    
+    #+END_HTML    
+    
+
+
+
+     
+   
