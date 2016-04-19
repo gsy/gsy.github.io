@@ -1,0 +1,311 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. sample数据库</a>
+<ul>
+<li><a href="#sec-1-1">1.1. sakila数据库安装</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. 使用 SHOW PROFILE</a>
+<ul>
+<li><a href="#sec-2-1">2.1. SHOW PROFILE的使用脚本</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. 使用 SHOW STATUS</a></li>
+</ul>
+</div>
+</div>
+<p>
+当定位到慢查询时，还需要工具去查看到底在整个查询中发生了什么，以便有目的地优化。
+</p>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> sample数据库</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+sakila是mysql提供的一个测试数据库，书籍、报告中关于mysql方面的例子都可以使用这个数据库，方便交流。
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> sakila数据库安装</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>到<a href="https://dev.mysql.com/doc/index-other.html">sakila下载页面</a> 下载压缩包
+</li>
+<li>解压都your<sub>path</sub>/sakila-db/目录下
+</li>
+<li>压缩包里面有三个文件
+<ul class="org-ul">
+<li>sakila-schema.sql
+包含创建表结构的sql语句
+</li>
+<li>sakila-data.sql
+包含填充数据的sql语句
+</li>
+<li>sakila.mwb
+MySQL Workbench使用的数据模型文件，方便Workbench查看数据库的结构
+</li>
+</ul>
+</li>
+<li>source执行两个sql文件的语句
+<ul class="org-ul">
+<li>source your<sub>path</sub>/sakila-db/sakila-schema.sql
+</li>
+<li>source your<sub>path</sub>/sakila-db/sakila-data.sql
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 使用 SHOW PROFILE</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+show profile是Jeremy Cole贡献给mysql开源社区的剖析工具，可以用来查看sql语句执行过程中消耗的资源。默认状态下，这个工具是关闭的，可以通过服务器变量在会话（连接）级别打开
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">mysql&gt; set <span style="color: #a0522d;">profiling</span> = 1;
+Query OK, 0 rows affected (0.00 sec)
+</pre>
+</div>
+<p>
+下面使用sakila数据库的数据举个例子：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">mysql&gt; select * from sakila.nicer_but_slower_film_list;
+</pre>
+</div>
+<p>
+使用show profiles查看结果
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">mysql&gt; show profiles;
++----------+------------+-------------------------------------------------+
+| Query_ID | Duration   | Query                                           |
++----------+------------+-------------------------------------------------+
+|        1 | 0.08257125 | <span style="color: #a020f0;">select</span> * from sakila.nicer_but_slower_film_list |
+</pre>
+</div>
+<p>
+可以看到语句的id和执行时间。
+当需要更详细的执行过程的资源消耗时，可以继续下去：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">mysql&gt; show profile for query 1;
++--------------------------------+----------+
+| Status                         | Duration |
++--------------------------------+----------+
+| starting                       | 0.000033 |
+| Waiting for query cache lock   | 0.000005 |
+| checking query cache for query | 0.000067 |
+| checking permissions           | 0.000014 |
+| Opening tables                 | 0.000562 |
+| System lock                    | 0.000026 |
+| checking permissions           | 0.000007 |
+| checking permissions           | 0.000004 |
+| checking permissions           | 0.000003 |
+| checking permissions           | 0.000003 |
+| checking permissions           | 0.000490 |
+| optimizing                     | 0.000057 |
+| statistics                     | 0.000103 |
+| preparing                      | 0.000051 |
+| Creating tmp table             | 0.000339 |
+| executing                      | 0.000009 |
+| Copying to tmp table           | 0.053722 |
+| Sorting result                 | 0.006304 |
+| Sending data                   | 0.018384 |
+| removing tmp table             | 0.000368 |
+| Sending data                   | 0.000009 |
+| Waiting for query cache lock   | 0.000003 |
+| Sending data                   | 0.000034 |
+| init                           | 0.000018 |
+| optimizing                     | 0.000005 |
+| statistics                     | 0.000009 |
+| preparing                      | 0.000008 |
+| executing                      | 0.000002 |
+| Sending data                   | 0.001580 |
+| end                            | 0.000005 |
+| query end                      | 0.000014 |
+| closing tables                 | 0.000003 |
+| removing tmp table             | 0.000139 |
+| closing tables                 | 0.000009 |
+| freeing items                  | 0.000011 |
+| removing tmp table             | 0.000006 |
+| freeing items                  | 0.000010 |
+| Waiting for query cache lock   | 0.000003 |
+| freeing items                  | 0.000137 |
+| Waiting for query cache lock   | 0.000005 |
+| freeing items                  | 0.000002 |
+| storing result<span style="color: #a020f0;"> in</span> query cache  | 0.000004 |
+| logging slow query             | 0.000003 |
+| cleaning up                    | 0.000007 |
++--------------------------------+----------+
+44 rows<span style="color: #a020f0;"> in</span> set (0.00 sec)
+</pre>
+</div>
+<p>
+这份报告给出的是按照查询执行的过程顺序，每个步骤花费的时间。步骤太多，很难迅速的看出有效的信息，所以，使用脚本分析下。
+</p>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> SHOW PROFILE的使用脚本</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b22222;">#</span><span style="color: #b22222;">!/usr/bin/env python</span>
+<span style="color: #b22222;"># </span><span style="color: #b22222;">encoding: utf-8</span>
+
+<span style="color: #a020f0;">import</span> mysql.connector
+
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">mysql_backend</span>(<span style="color: #483d8b;">object</span>):
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">__init__</span>(<span style="color: #a020f0;">self</span>, host, port, user, password, db):
+        <span style="color: #a020f0;">self</span>._host = host
+        <span style="color: #a020f0;">self</span>._port = port
+        <span style="color: #a020f0;">self</span>._user = user
+        <span style="color: #a020f0;">self</span>._password = password
+        <span style="color: #a020f0;">self</span>._db = db
+        <span style="color: #a020f0;">self</span>.conn = <span style="color: #008b8b;">None</span>
+        <span style="color: #a020f0;">self</span>.cursor = <span style="color: #008b8b;">None</span>
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">connect</span>(<span style="color: #a020f0;">self</span>):
+        <span style="color: #a020f0;">self</span>.conn = mysql.connector.connect(user=<span style="color: #a020f0;">self</span>._user, password=<span style="color: #a020f0;">self</span>._password, host=<span style="color: #a020f0;">self</span>._host, port=<span style="color: #a020f0;">self</span>._port, database=<span style="color: #a020f0;">self</span>._db)
+        <span style="color: #a020f0;">self</span>.cursor = <span style="color: #a020f0;">self</span>.conn.cursor()
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">execute</span>(<span style="color: #a020f0;">self</span>, sql):
+        <span style="color: #a020f0;">self</span>.cursor.execute(sql)
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">query</span>(<span style="color: #a020f0;">self</span>, sql):
+        <span style="color: #a020f0;">self</span>.cursor.execute(sql)
+        <span style="color: #a020f0;">return</span> <span style="color: #a020f0;">self</span>.cursor.fetchall()
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Report</span>(<span style="color: #483d8b;">object</span>):
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">__init__</span>(<span style="color: #a020f0;">self</span>, key, total, calls):
+        <span style="color: #a020f0;">self</span>.key = key
+        <span style="color: #a020f0;">self</span>.total = total
+        <span style="color: #a020f0;">self</span>.calls = calls    
+
+<span style="color: #a0522d;">backend</span> = mysql_backend(<span style="color: #8b2252;">'192.168.0.102'</span>, <span style="color: #8b2252;">'3306'</span>, <span style="color: #8b2252;">'guang'</span>, <span style="color: #8b2252;">'guang.1019'</span>, <span style="color: #8b2252;">'sakila'</span>)
+backend.connect()
+backend.execute(<span style="color: #8b2252;">"set profiling = 1;"</span>)
+backend.query(<span style="color: #8b2252;">"select * from sakila.nicer_but_slower_film_list;"</span>)
+<span style="color: #a0522d;">metrics</span> = backend.query(<span style="color: #8b2252;">"show profile for query 1;"</span>)
+
+<span style="color: #a0522d;">seen</span> = []
+<span style="color: #a0522d;">profiles</span> = {}
+<span style="color: #a0522d;">total</span> = 0
+<span style="color: #a020f0;">for</span> pair <span style="color: #a020f0;">in</span> metrics:
+    <span style="color: #a0522d;">key</span> = pair[0]
+    <span style="color: #a0522d;">value</span> = pair[1]
+    <span style="color: #a020f0;">print</span> key, value
+    <span style="color: #a020f0;">if</span> key <span style="color: #a020f0;">in</span> seen:
+        <span style="color: #a0522d;">report</span> = profiles[key]
+        <span style="color: #a0522d;">report.total</span> += value
+        <span style="color: #a0522d;">report.calls</span> += 1
+    <span style="color: #a020f0;">else</span>:
+        seen.append(key)
+        <span style="color: #a0522d;">profiles</span>[key] = Report(key, value, 1)
+    <span style="color: #a0522d;">total</span> += value
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">overall</span>(profiles, total):
+    <span style="color: #a0522d;">lines</span> = profiles.values()
+    <span style="color: #a0522d;">lines</span> = <span style="color: #483d8b;">sorted</span>(lines, key=<span style="color: #a020f0;">lambda</span> profile: profile.total)
+    <span style="color: #a020f0;">for</span> line <span style="color: #a020f0;">in</span> lines:
+        <span style="color: #a020f0;">print</span> line.key, line.total, line.total/ total * 100, line.calls, line.total/line.calls
+
+
+overall(profiles, total)
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> 使用 SHOW STATUS</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+show status可以看到mysql中很多计数器的状态。
+先清零，观察下计数器的值。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">mysql&gt; flush status;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; show status where Variable_name like <span style="color: #8b2252;">'Handler%'</span> or Variable_name like <span style="color: #8b2252;">'Created%'</span>;
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| Created_tmp_disk_tables    | 0     |
+| Created_tmp_files          | 0     |
+| Created_tmp_tables         | 0     |
+| Handler_commit             | 0     |
+| Handler_delete             | 0     |
+| Handler_discover           | 0     |
+| Handler_prepare            | 0     |
+| Handler_read_first         | 0     |
+| Handler_read_key           | 0     |
+| Handler_read_last          | 0     |
+| Handler_read_next          | 0     |
+| Handler_read_prev          | 0     |
+| Handler_read_rnd           | 0     |
+| Handler_read_rnd_next      | 0     |
+| Handler_rollback           | 0     |
+| Handler_savepoint          | 0     |
+| Handler_savepoint_rollback | 0     |
+| Handler_update             | 0     |
+| Handler_write              | 0     |
++----------------------------+-------+
+</pre>
+</div>
+<p>
+执行语句后再次观察计数器：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">mysql&gt; select * from sakila.nicer_but_slower_film_list;
+mysql&gt; show status where Variable_name like <span style="color: #8b2252;">'Handler%'</span> or Variable_name like <span style="color: #8b2252;">'Created%'</span>;
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| Created_tmp_disk_tables    | 2     |
+| Created_tmp_files          | 0     |
+| Created_tmp_tables         | 3     |
+| Handler_commit             | 1     |
+| Handler_delete             | 0     |
+| Handler_discover           | 0     |
+| Handler_prepare            | 0     |
+| Handler_read_first         | 1     |
+| Handler_read_key           | 7478  |
+| Handler_read_last          | 0     |
+| Handler_read_next          | 6462  |
+| Handler_read_prev          | 0     |
+| Handler_read_rnd           | 5462  |
+| Handler_read_rnd_next      | 6478  |
+| Handler_rollback           | 0     |
+| Handler_savepoint          | 0     |
+| Handler_savepoint_rollback | 0     |
+| Handler_update             | 0     |
+| Handler_write              | 6459  |
++----------------------------+-------+
+</pre>
+</div>
+<p>
+从结果可以看出：
+</p>
+<ul class="org-ul">
+<li>使用了3个临时表，其中两个是磁盘临时表
+</li>
+<li>有很多没有使用索引的读操作（Handler<sub>read</sub><sub>rnd</sub><sub>next</sub>)
+</li>
+</ul>
+</div>
+</div>

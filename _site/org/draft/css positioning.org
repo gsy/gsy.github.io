@@ -1,0 +1,17 @@
+CSS常用的定位的属性
+
+* static
+  默认的position属性
+* relative  
+  相对于原来位置的定位。内容移动后，原来的位置上留下一个坑。
+  #+BEGIN_HTML
+  <iframe height='268' scrolling='no' src='//codepen.io/guangdane/embed/NNymjL/?height=268&theme-id=0&default-tab=result' frameborder='no' allowtransparency='true' allowfullscreen='true' style='width: 100%;'>See the Pen <a href='http://codepen.io/guangdane/pen/NNymjL/'>NNymjL</a> by guang (<a href='http://codepen.io/guangdane'>@guangdane</a>) on <a href='http://codepen.io'>CodePen</a>.
+</iframe>
+  #+END_HTML
+* absolute
+  相对于最近的已定义的（即不是static的）祖先元素进行定位。如果没有已定位的祖先元素，则相对于document进行定位。当元素移动时，原来的地方被后继的元素补充填满。
+  #+BEGIN_HTML
+  <iframe height='268' scrolling='no' src='//codepen.io/guangdane/embed/KzQYRL/?height=268&theme-id=0&default-tab=result' frameborder='no' allowtransparency='true' allowfullscreen='true' style='width: 100%;'>See the Pen <a href='http://codepen.io/guangdane/pen/KzQYRL/'>KzQYRL</a> by guang (<a href='http://codepen.io/guangdane'>@guangdane</a>) on <a href='http://codepen.io'>CodePen</a>.
+</iframe>
+  #+END_HTML
+* fix

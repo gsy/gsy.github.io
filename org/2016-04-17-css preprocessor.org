@@ -1,0 +1,136 @@
+#+BEGIN_HTML
+---
+layout: post
+title: CSS Preprocessor
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+
+css是用于描述html元素的样式的，本身缺乏逻辑，当css文件随着时间推移变得庞大和复杂，难以管理的时候，程序员需要一种手段去应对book keeping的琐碎。这就是css preprocess切入的地方：不直接编辑css文件，而是提供一种抽象语法，加入编程元素，对文件进行一层预处理，然后生成css文件。这里主要介绍sass这个预处理器。  
+  
+* Variables
+  需要多次使用的CSS value可以使用变量来存储。变量是以$开头的符号。
+  #+BEGIN_SRC sass
+    $font-stack:    Helvetica, sans-serif
+    $primary-color: #333
+
+    body
+      font: 100% $font-stack
+      color: $primary-color
+  #+END_SRC
+* Nested
+  嵌套使得css的折叠样式更直观。
+  #+BEGIN_SRC sass
+    nav
+      ul
+        margin: 0
+        padding: 0
+        list-style: none
+
+      li
+        display: inline-block
+
+      a
+        display: block
+        padding: 6px 12px
+        text-decoration: none
+  #+END_SRC
+* Partials
+  partial是一个只包含@import指令的的文件，partial告诉css预处理器，不要对这个文件生成相应的css文件。partial文件以下划线开头，这样：_partial.sass
+* Import
+  css文件可以分拆成多个小的css文件，然后在html文件里通过link引用，这样做不好的地方是每个css文件的引用都产生一个http request。sass提供imoprt指令，将多个css文件合并成为一个大的css文件，这个过程发生在server端，所以client只要一次http请求就可以获取完整的css文件。
+  在_reset.sass中引入base.sass
+  #+BEGIN_SRC sass
+    // _reset.sass
+
+    html,
+    body,
+    ul,
+    ol
+      margin:  0
+      padding: 0      
+  #+END_SRC
+
+  #+BEGIN_SRC sass
+    // base.sass
+
+    @import reset
+
+    body
+      font: 100% Helvetica, sans-serif
+      background-color: #efefef      
+  #+END_SRC
+* Mixins
+  mixin类似于其他语言的函数。
+  #+BEGIN_SRC sass
+    =border-radius($radius)
+      -webkit-border-radius: $radius
+      -moz-border-radius:    $radius
+      -ms-border-radius:     $radius
+      border-radius:         $radius
+
+    .box
+      +border-radius(10px)
+      
+  #+END_SRC
+  支持多参数。一个很傻的例子
+  #+BEGIN_SRC sass
+      =border-radius($radius)
+      -webkit-border-radius: $radius
+      -moz-border-radius:    $radius
+      -ms-border-radius:     $radius
+      border-radius:         $radius
+
+    .box
+      +border-radius(10px)
+      
+  #+END_SRC
+  支持多参数。一个很傻的例子
+  #+BEGIN_SRC sass
+    =margin($top, $right, $bottom, $left)
+      margin: $top $right $bottom $left
+
+    .box
+      +margin(10px, 12px, 20px, 5px)
+  #+END_SRC
+* Extend/Inheritance
+  类似于c里面宏的作用，文本复制。
+  #+BEGIN_SRC sass
+    .message
+      border: 1px solid #ccc
+      padding: 10px
+      color: #333
+
+
+    .success
+      @extend .message
+      border-color: green
+
+
+    .error
+      @extend .message
+      border-color: red
+
+
+    .warning
+      @extend .message
+      border-color: yellow      
+  #+END_SRC
+* Math
+  Sass提供了一些操作符，可以在对css value进行计算。
+  #+BEGIN_SRC sass
+    .container
+      width: 100%
+
+    article[role="main"]
+      float: left
+      width: 600px / 960px * 100%
+
+
+    aside[role="complimentary"]
+      float: right
+      width: 300px / 960px * 100%
+  #+END_SRC
+
+
+

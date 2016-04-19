@@ -1,0 +1,265 @@
+#+BEGIN_HTML
+---
+layout: post
+title: 分布式服务框架-zookeeper
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+
+zookeeper是一个分布式服务框架，它主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管理等。
+
+* The Zookeeper Data Model
+  zookeeper使用树状的命名空间，就好像一个分布式的文件系统。不同的是，zookeeper命名空间的节点既可以包含子节点，也可以包含数据，就好像一个文件系统中允许节点既是目录也是文件。节点的路径总是使用绝对路径，使用/分隔，不使用相对路径引用。
+** ZNodes
+   zookeeper的树状命名空间的节点称为ZNode。Znode维护了一个stat的数据结构，包含了数据变动、acl变动的version number，还包含timestamp。version number配合timestamp帮助zookeeper定位数据变动的时间点。每个数据变动都会使得version number增加。zooker的stat结构如下：
+   - czxid
+     节点创建时的zxid
+   - mzxid
+     节点修改是的zxid
+   - ctime
+     节点创建的时间戳
+   - mtime
+     节点上次修改时的时间戳
+   - version
+     数据变动的version number
+   - aversion
+     acl变动的version number
+   - ephemeralOwner
+     创建临时节点的session id，如果不是临时节点，那么这个值为0
+   - dataLength
+     数据长度
+   - numChildren
+     子节点数目
+** Watchers
+   客户端可以对znode设置监控。znode发生变动会触发监控，通知client然后将watch清除。
+** Data Access
+   存储在znode的数据的读写都是原子操作。读操作获取znode关联的所有数据，写操作则替换掉所有数据。每个节点有一个ACL(Access Control List)规定了那些操作是被允许的。
+** Ephemeral Nodes
+   字面意思是临时节点。这些节点只在创建这个znode的session中存在，当session失效后，这些节点会被删除，因为这样，临时节点不允许有子节点。
+** zookeeper的时间单位
+*** zxid
+    zookeeper transaction id，每次变动操作都会增加zxid。这个id记录了zookeeper所有变动发生的先后顺序
+*** version number
+    节点的每个数据变动都会增加这个节点的version number，有3个version number
+    - version
+      数据变动的version number
+    - cvsersion
+      子几点变动的version number
+    - aversion
+      acl变动的version number
+*** Ticks
+    时间滴答。用于各种超时计时和事件计时。
+*** Real time
+    zookeeper不使用真实的物理时间。
+
+
+    
+
+   
+* Zookeeper Watches
+  zookeeper的读操作如getData(), getChildren(), exists()都能设置监控。当监控的节点的数据发送变化时，就会触发一次监听事件，同时监控会被清除，这意味着如果还想监控节点的数据变化，需要重新设置监控。
+  - 监听事件只触发一次
+  - zookeeper保证，客户端总是先监听到数据变动事件，然后才能访问变动后的数据。监听事件是异步发送的，不同的监听端收到监听事件的时间是不同的，但是先收到数据变动的通知，然后访问新数据这个顺序是在所有监听端都能得到保证的。
+  - 数据变动触发数据变动事件，子节点变动触发子节点变动事件。
+* Zookeeper ACL
+  zookeeper对每个节点使用类似unix文件系统中对文件的权限管理，不同的是，不是划分成user,group,other来区别权限，而是使用(id,perms)这样的associate list。id的组成是scheme:expression，举个例子是：ip:172.16.16.1代表了ip地址是172.16.16.1的host。
+** ACL Permissions
+   - create: 可以创建子节点
+   - read: 获取数据，获取子节点列表
+   - write: 写数据
+   - delete: 删除子节点
+   - admin: 可以设置权限
+     
+* kazoo
+  python binding的zookeeper客户端
+** 安装
+   #+BEGIN_SRC sh
+   pip install kazoo
+   #+END_SRC
+* Barrier and Queue Tutorial using kazoo
+** Barrier
+   Barrier是一个同步原语，使得一组计算同时开始，同时结束。实现的思路是创建一个父节点，每个计算在实施之前先在父节点下面创建子节点，父节点检查子节点的数目，如果创建够足够多的子节点，计算就可以开始了。
+   #+BEGIN_SRC python
+     # encoding: utf-8
+     __author__ = 'guang'
+     from kazoo.client import KazooClient
+     from kazoo.exceptions import KazooException
+     import logging
+
+     class Client(object):
+         def __init__(self):
+             logging.basicConfig()
+             self.zk = KazooClient(hosts='127.0.0.1:2181')
+             self.zk.start()
+
+     class Barrier(object):
+         def __init__(self, root, size, client=None):
+             """
+             :param root: 父节点目录
+             :param size: Barrier等待的操作的数目
+             :param client: zookeeper客户端
+             :return:
+             """
+             self.root = root
+             self.size = size
+             if client is None:
+                 self.client = Client()
+             else:
+                 self.client = client
+
+             try:
+                 stat = self.client.zk.exists(self.root, watch=False)
+                 if stat is None:
+                     self.client.zk.create(self.root, value="", acl=None, ephemeral=False)
+             except KazooException, e:
+                 print "Keeper exception when instantiating queue: " + e
+             except KeyboardInterrupt:
+                 print "Interrupted exception"
+
+             self.name = ""
+
+         def join(self, name):
+             self.client.zk.create(self.root + '/' + name, value='', acl=None, ephemeral=True, sequence=False)
+             while True:
+                 children = self.client.zk.get_children(self.root)
+                 if len(children) >= self.size:
+                     return True
+
+         def leave(self, name):
+             self.client.zk.delete(self.root + '/' + name)
+             while True:
+                 children = self.client.zk.get_children(self.root)
+                 if len(children) <= 0:
+                     return True
+
+   #+END_SRC
+   举个例子，有3个朋友约定了一起开车出去玩，先在加油站集合，人数凑齐了，就一起从加油站出发。约定的人数就是Barrier的size参数，join是表示有几个人出发了，leave表示有几个人到达了加油站，进入了就绪状态。
+   #+BEGIN_SRC python
+     # encoding: utf-8
+     __author__ = 'guang'
+
+     import unittest
+     from barrier import Barrier
+     import threading
+     import time
+
+     class CarDriveTest(unittest.TestCase):
+
+         def test_drive_independent(self):
+
+             def drive_to_seattle(name, time_to_gas_station):
+                 print "{0} Leaving House".format(name)
+
+                 time.sleep(time_to_gas_station)
+
+                 print "{0} Arrived at Gas Station".format(name)
+
+                 print "{0} Leaving for Seattle".format(name)
+
+             charlie = threading.Thread(group=None, target=drive_to_seattle, name="charlie", args=("charlie", 1), kwargs={})
+             charlie.run()
+
+             mac = threading.Thread(group=None, target=drive_to_seattle, name="mac", args=("mac", 2), kwargs={})
+             mac.run()
+
+             dennis = threading.Thread(group=None, target=drive_to_seattle, name="dennis", args=("dennis", 3), kwargs={})
+             dennis.run()
+
+         def test_drive_together(self):
+
+             def drive_to_seattle(name, time_to_gas_station):
+                 b.join(name)
+                 print "{0} Leaving House".format(name)
+
+                 time.sleep(time_to_gas_station)
+
+                 print "{0} Arrived at Gas Station".format(name)
+                 b.leave(name)
+
+                 print "{0} Leaving for Seattle".format(name)
+
+             b = Barrier("drive_to_seattle", 2)
+
+             charlie = threading.Thread(group=None, target=drive_to_seattle, name="charlie", args=("charlie", 1), kwargs={})
+             charlie.start()
+
+             mac = threading.Thread(group=None, target=drive_to_seattle, name="mac", args=("mac", 2), kwargs={})
+             mac.start()
+
+             dennis = threading.Thread(group=None, target=drive_to_seattle, name="dennis", args=("dennis", 3), kwargs={})
+             dennis.run()
+
+
+
+
+     if __name__ == '__main__':
+         unittest.main()
+
+        
+   #+END_SRC
+** Queue
+   zookeeper的节点可以存放数据，但是大小有限制，所以这个recipe的作用不大。
+   #+BEGIN_SRC python
+     __author__ = 'guang'
+     from kazoo.client import KazooClient
+     from kazoo.exceptions import KazooException
+     import logging
+
+     class Client(object):
+         def __init__(self):
+             logging.basicConfig()
+             self.zk = KazooClient(hosts='127.0.0.1:2181')
+             self.zk.start()
+
+
+     class Queue(object):
+         def __init__(self, root, client=None):
+             self.root = root
+             if client is None:
+                 self.client = Client()
+             else:
+                 self.client = client
+
+             try:
+                 stat = self.client.zk.exists(self.root, watch=False)
+                 if stat is None:
+                     self.client.zk.create(self.root, value="", acl=None, ephemeral=False)
+             except KazooException, e:
+                 print "Keeper exception when instantiating queue: " + e
+             except KeyboardInterrupt:
+                 print "Interrupted exception"
+
+             self.name = ""
+
+         def produce(self, number):
+             """
+             Add element to the queue.
+             :param number:
+             :return:
+             """
+             self.client.zk.create(self.root + "/element", number,  ephemeral=False, sequence=True)
+             return True
+
+         def consume(self):
+             """
+             Remove first element from the queue.
+             :return: first element's value
+             """
+             while True:
+                 children = self.client.zk.get_children(self.root)
+                 if len(children) == 0:
+                     print "Going to wait"
+                 else:
+                     sequences = [element[7:] for element in children]
+                     min_number = min(sequences)
+                     print "min node: " + self.root + "/element" + min_number
+                     value, stat = self.client.zk.get(self.root + "/element" + min_number)
+                     self.client.zk.delete(self.root + "/element" + min_number)
+                     print value
+
+   #+END_SRC
+   
+   
+  
+
+

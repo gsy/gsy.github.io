@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+    <title>HTML基础</title>
+    <!-- link to main stylesheet -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+</head>
+
+    
+    <body>
+	<article class="content">
+	    <h1 class="title">
+		<a href="" title="HTML基础">HTML基础</a>
+	    </h1>
+	    <p>
+HTML Dom模型，tag &amp; attributes
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> DOM</h2>
+<div class="outline-text-2" id="text-1">
+<blockquote>
+<p>
+文档对象模型 (DOM) 是 HTML 和 XML 文档的编程接口。它给文档（结构树）提供了一个结构化的表述并且定义了一种方式—程序可以对结构树进行访问，以改变文档的结构，样式和内容。 DOM 提供了一种表述形式— 将文档作为一个结构化的节点组以及包含属性和方法的对象。从本质上说，它将 web 页面和脚本或编程语言连接起来了。
+</p>
+</blockquote>
+<p>
+<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Document_Object_Model/Introduction">MDN的介绍</a>
+提供DOM统一接口的起因是：为了实现网页动画，需要将html，脚本，css结合起来，人们提出的dynamic html的概念。不同公司提出了不同的脚本和html文本交互的方法，于是需要出现一个对于脚本语言中立的接口。
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> 浏览器</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+为了渲染一个html页面，很多浏览器使用一种类似于DOM的内部模型。文本的节点组织成树形结构，称为DOM Tree，最上层的根节点称为"Document object"。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> js</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+当页面被load进内存的时候，浏览器就创建了一个页面对应的DOM，js就可以操纵这个模型。
+</p>
+<ul class="org-ul">
+<li>添加，修改和删除网页的元素和属性
+</li>
+<li>改变页面的所有css属性
+</li>
+<li>对于页面已有的所有事件作出回应
+</li>
+<li>在页面内添加新的事件   
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Display types</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+html元素会在浏览器中渲染，展示类型决定了浏览器将怎样渲染元素。css可以改变渲染的样式，但是每个tag有默认的展示行为，当没有css介入的时候，浏览器就使用默认的展示类型。有3种主要的display type。
+</p>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> Block</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+Block是块状的，从一个新行开始，从左到右能占用多大地方占用多大地方。Block基本的元素可以包含inline级别的元素或者其他block级元素。比如说 "p" 标签，包含了一整段文字，后续的 "p" 标签会新起一行。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> Inline</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+Inline元素只能包含数据或者其他inline级元素。inline元素不需要从新的一行开始，只使用刚好能展示元素的地方。例子是 "a" 标签，链接内嵌在一行文字之中。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> Inline-block</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+Inline-block元素跟它临近的元素同行，但是它可以向一个block一样调整整体的margin，padding和dimension。默认是inline-block的元素只有image和button。
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> HTML element</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+当html document被浏览器解析成DOM Tree时，document就可以看成是由很多HTML element节点组成的。html元素有各自属性和内容，可以包含其他html元素，并且带有语意，比如title元素表示的是document的标题。  
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> HTML tag</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+html元素由html tag表示，通常包含起始ag和结束tag，起始tag可以设置元素的属性。
+</p>
+</div>
+<div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> Basic HTML</h3>
+<div class="outline-text-3" id="text-4-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;!DOCTYPE&gt;</td>
+<td class="left">Defines the document type</td>
+</tr>
+
+<tr>
+<td class="left">&lt;html&gt;</td>
+<td class="left">Defines an HTML document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;title&gt;</td>
+<td class="left">Defines a title for the document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;body&gt;</td>
+<td class="left">Defines the document's body</td>
+</tr>
+
+<tr>
+<td class="left">&lt;h1&gt; to &lt;h6&gt;</td>
+<td class="left">Defines HTML headings</td>
+</tr>
+
+<tr>
+<td class="left">&lt;p&gt;</td>
+<td class="left">Defines a paragraph</td>
+</tr>
+
+<tr>
+<td class="left">&lt;br&gt;</td>
+<td class="left">Inserts a single line break</td>
+</tr>
+
+<tr>
+<td class="left">&lt;hr&gt;</td>
+<td class="left">Defines a thematic change in the content</td>
+</tr>
+
+<tr>
+<td class="left">&lt;!&#x2013;&#x2026;&#x2013;&gt;</td>
+<td class="left">Defines a comment</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> Formatting</h3>
+<div class="outline-text-3" id="text-4-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;acronym&gt;</td>
+<td class="left">Not supported in HTML5. Use &lt;abbr&gt; instead.  Defines an acronym</td>
+</tr>
+
+<tr>
+<td class="left">&lt;abbr&gt;</td>
+<td class="left">Defines an abbreviation or an acronym</td>
+</tr>
+
+<tr>
+<td class="left">&lt;address&gt;</td>
+<td class="left">Defines contact information for the author/owner of a document/article</td>
+</tr>
+
+<tr>
+<td class="left">&lt;b&gt;</td>
+<td class="left">Defines bold text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;bdi&gt;</td>
+<td class="left">Isolates a part of text that might be formatted in a different direction from other text outside it</td>
+</tr>
+
+<tr>
+<td class="left">&lt;bdo&gt;</td>
+<td class="left">Overrides the current text direction</td>
+</tr>
+
+<tr>
+<td class="left">&lt;big&gt;</td>
+<td class="left">Not supported in HTML5. Use CSS instead. Defines big text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;blockquote&gt;</td>
+<td class="left">Defines a section that is quoted from another source</td>
+</tr>
+
+<tr>
+<td class="left">&lt;center&gt;</td>
+<td class="left">Not supported in HTML5. Use CSS instead. Defines centered text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;cite&gt;</td>
+<td class="left">Defines the title of a work</td>
+</tr>
+
+<tr>
+<td class="left">&lt;code&gt;</td>
+<td class="left">Defines a piece of computer code</td>
+</tr>
+
+<tr>
+<td class="left">&lt;del&gt;</td>
+<td class="left">Defines text that has been deleted from a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;dfn&gt;</td>
+<td class="left">Represents the defining instance of a term</td>
+</tr>
+
+<tr>
+<td class="left">&lt;em&gt;</td>
+<td class="left">Defines emphasized text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;font&gt;</td>
+<td class="left">Not supported in HTML5. Use CSS instead.Defines font, color, and size for text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;i&gt;</td>
+<td class="left">Defines a part of text in an alternate voice or mood</td>
+</tr>
+
+<tr>
+<td class="left">&lt;ins&gt;</td>
+<td class="left">Defines a text that has been inserted into a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;kbd&gt;</td>
+<td class="left">Defines keyboard input</td>
+</tr>
+
+<tr>
+<td class="left">&lt;mark&gt;</td>
+<td class="left">Defines marked/highlighted text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;meter&gt;</td>
+<td class="left">Defines a scalar measurement within a known range (a gauge)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;pre&gt;</td>
+<td class="left">Defines preformatted text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;progress&gt;</td>
+<td class="left">Represents the progress of a task</td>
+</tr>
+
+<tr>
+<td class="left">&lt;q&gt;</td>
+<td class="left">Defines a short quotation</td>
+</tr>
+
+<tr>
+<td class="left">&lt;rp&gt;</td>
+<td class="left">Defines what to show in browsers that do not support ruby annotations</td>
+</tr>
+
+<tr>
+<td class="left">&lt;rt&gt;</td>
+<td class="left">Defines an explanation/pronunciation of characters (for East Asian typography)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;ruby&gt;</td>
+<td class="left">Defines a ruby annotation (for East Asian typography)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;s&gt;</td>
+<td class="left">Defines text that is no longer correct</td>
+</tr>
+
+<tr>
+<td class="left">&lt;samp&gt;</td>
+<td class="left">Defines sample output from a computer program</td>
+</tr>
+
+<tr>
+<td class="left">&lt;small&gt;</td>
+<td class="left">Defines smaller text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;strike&gt;</td>
+<td class="left">Not supported in HTML5. Use &lt;del&gt; or &lt;s&gt; instead.Defines strikethrough text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;strong&gt;</td>
+<td class="left">Defines important text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;sub&gt;</td>
+<td class="left">Defines subscripted text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;sup&gt;</td>
+<td class="left">Defines superscripted text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;time&gt;</td>
+<td class="left">Defines a date/time</td>
+</tr>
+
+<tr>
+<td class="left">&lt;tt&gt;</td>
+<td class="left">Not supported in HTML5. Use CSS instead.Defines teletype text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;u&gt;</td>
+<td class="left">Defines text that should be stylistically different from normal text</td>
+</tr>
+
+<tr>
+<td class="left">&lt;var&gt;</td>
+<td class="left">Defines a variable</td>
+</tr>
+
+<tr>
+<td class="left">&lt;wbr&gt;</td>
+<td class="left">Defines a possible line-break</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> Forms and Input</h3>
+<div class="outline-text-3" id="text-4-3">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;form&gt;</td>
+<td class="left">Defines an HTML form for user input</td>
+</tr>
+
+<tr>
+<td class="left">&lt;input&gt;</td>
+<td class="left">Defines an input control</td>
+</tr>
+
+<tr>
+<td class="left">&lt;textarea&gt;</td>
+<td class="left">Defines a multiline input control (text area)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;button&gt;</td>
+<td class="left">Defines a clickable button</td>
+</tr>
+
+<tr>
+<td class="left">&lt;select&gt;</td>
+<td class="left">Defines a drop-down list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;optgroup&gt;</td>
+<td class="left">Defines a group of related options in a drop-down list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;option&gt;</td>
+<td class="left">Defines an option in a drop-down list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;label&gt;</td>
+<td class="left">Defines a label for an                                     input         element</td>
+</tr>
+
+<tr>
+<td class="left">&lt;fieldset&gt;</td>
+<td class="left">Groups related elements in a form</td>
+</tr>
+
+<tr>
+<td class="left">&lt;legend&gt;</td>
+<td class="left">Defines a caption for a                                    fieldset      element</td>
+</tr>
+
+<tr>
+<td class="left">&lt;datalist&gt;</td>
+<td class="left">Specifies a list of pre-defined options for input controls</td>
+</tr>
+
+<tr>
+<td class="left">&lt;keygen&gt;</td>
+<td class="left">Defines a key-pair generator field (for forms)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;output&gt;</td>
+<td class="left">Defines the result of a calculation</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4"><span class="section-number-3">4.4</span> Frames</h3>
+<div class="outline-text-3" id="text-4-4">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;frame&gt;</td>
+<td class="left">Not supported in HTML5.Defines a window (a frame) in a frameset</td>
+</tr>
+
+<tr>
+<td class="left">&lt;frameset&gt;</td>
+<td class="left">Not supported in HTML5.Defines a set of frames</td>
+</tr>
+
+<tr>
+<td class="left">&lt;noframes&gt;</td>
+<td class="left">Not supported in HTML5.Defines an alternate content for users that do not support frames</td>
+</tr>
+
+<tr>
+<td class="left">&lt;iframe&gt;</td>
+<td class="left">Defines an inline frame</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-4-5" class="outline-3">
+<h3 id="sec-4-5"><span class="section-number-3">4.5</span> Images</h3>
+<div class="outline-text-3" id="text-4-5">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;img&gt;</td>
+<td class="left">Defines an image</td>
+</tr>
+
+<tr>
+<td class="left">&lt;map&gt;</td>
+<td class="left">Defines a client-side image-map</td>
+</tr>
+
+<tr>
+<td class="left">&lt;area&gt;</td>
+<td class="left">Defines an area inside an image-map</td>
+</tr>
+
+<tr>
+<td class="left">&lt;canvas&gt;</td>
+<td class="left">Used to draw graphics, on the fly, via scripting (usually JavaScript)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;figcaption&gt;</td>
+<td class="left">Defines a caption for a &lt;figure&gt;  element</td>
+</tr>
+
+<tr>
+<td class="left">&lt;figure&gt;</td>
+<td class="left">Specifies self-contained content</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-6" class="outline-3">
+<h3 id="sec-4-6"><span class="section-number-3">4.6</span> Audio / Video</h3>
+<div class="outline-text-3" id="text-4-6">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;audio&gt;</td>
+<td class="left">Defines sound content</td>
+</tr>
+
+<tr>
+<td class="left">&lt;source&gt;</td>
+<td class="left">Defines multiple media resources for media elements (&lt;video&gt; and &lt;audio&gt;)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;track&gt;</td>
+<td class="left">Defines text tracks for media elements (&lt;video&gt; and &lt;audio&gt;)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;video&gt;</td>
+<td class="left">Defines a video or movie</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-7" class="outline-3">
+<h3 id="sec-4-7"><span class="section-number-3">4.7</span> Links</h3>
+<div class="outline-text-3" id="text-4-7">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;a&gt;</td>
+<td class="left">Defines a hyperlink</td>
+</tr>
+
+<tr>
+<td class="left">&lt;link&gt;</td>
+<td class="left">Defines the relationship between a document and an external resource (most used to link to style sheets)</td>
+</tr>
+
+<tr>
+<td class="left">&lt;nav&gt;</td>
+<td class="left">Defines navigation links</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-8" class="outline-3">
+<h3 id="sec-4-8"><span class="section-number-3">4.8</span> Lists</h3>
+<div class="outline-text-3" id="text-4-8">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;ul&gt;</td>
+<td class="left">Defines an unordered list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;ol&gt;</td>
+<td class="left">Defines an ordered list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;li&gt;</td>
+<td class="left">Defines a list item</td>
+</tr>
+
+<tr>
+<td class="left">&lt;dir&gt;</td>
+<td class="left">Not supported in HTML5. Use &lt;ul&gt;  instead.Defines a directory list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;dl&gt;</td>
+<td class="left">Defines a description list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;dt&gt;</td>
+<td class="left">Defines a term/name in a description list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;dd&gt;</td>
+<td class="left">Defines a description of a term/name in a description list</td>
+</tr>
+
+<tr>
+<td class="left">&lt;menu&gt;</td>
+<td class="left">Defines a list/menu of commands</td>
+</tr>
+
+<tr>
+<td class="left">&lt;menuitem&gt;</td>
+<td class="left">Defines a command/menu item that the user can invoke from a popup menu</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-4-9" class="outline-3">
+<h3 id="sec-4-9"><span class="section-number-3">4.9</span> Tables</h3>
+<div class="outline-text-3" id="text-4-9">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;table&gt;</td>
+<td class="left">Defines a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;caption&gt;</td>
+<td class="left">Defines a table caption</td>
+</tr>
+
+<tr>
+<td class="left">&lt;th&gt;</td>
+<td class="left">Defines a header cell in a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;tr&gt;</td>
+<td class="left">Defines a row in a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;td&gt;</td>
+<td class="left">Defines a cell in a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;thead&gt;</td>
+<td class="left">Groups the header content in a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;tbody&gt;</td>
+<td class="left">Groups the body content in a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;tfoot&gt;</td>
+<td class="left">Groups the footer content in a table</td>
+</tr>
+
+<tr>
+<td class="left">&lt;col&gt;</td>
+<td class="left">Specifies column properties for each column within a &lt;colgroup&gt;  element</td>
+</tr>
+
+<tr>
+<td class="left">&lt;colgroup&gt;</td>
+<td class="left">Specifies a group of one or more columns in a table for formatting</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-10" class="outline-3">
+<h3 id="sec-4-10"><span class="section-number-3">4.10</span> Styles and Semantics</h3>
+<div class="outline-text-3" id="text-4-10">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;style&gt;</td>
+<td class="left">Defines style information for a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;div&gt;</td>
+<td class="left">Defines a section in a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;span&gt;</td>
+<td class="left">Defines a section in a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;header&gt;</td>
+<td class="left">Defines a header for a document or section</td>
+</tr>
+
+<tr>
+<td class="left">&lt;footer&gt;</td>
+<td class="left">Defines a footer for a document or section</td>
+</tr>
+
+<tr>
+<td class="left">&lt;main&gt;</td>
+<td class="left">Specifies the main content of a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;section&gt;</td>
+<td class="left">Defines a section in a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;article&gt;</td>
+<td class="left">Defines an article</td>
+</tr>
+
+<tr>
+<td class="left">&lt;aside&gt;</td>
+<td class="left">Defines content aside from the page content</td>
+</tr>
+
+<tr>
+<td class="left">&lt;details&gt;</td>
+<td class="left">Defines additional details that the user can view or hide</td>
+</tr>
+
+<tr>
+<td class="left">&lt;dialog&gt;</td>
+<td class="left">Defines a dialog box or window</td>
+</tr>
+
+<tr>
+<td class="left">&lt;summary&gt;</td>
+<td class="left">Defines a visible heading for a &lt;details&gt;  element</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-sec-4-11" class="outline-3">
+<h3 id="sec-4-11"><span class="section-number-3">4.11</span> Meta Info</h3>
+<div class="outline-text-3" id="text-4-11">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;head&gt;</td>
+<td class="left">Defines information about the document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;meta&gt;</td>
+<td class="left">Defines metadata about an HTML document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;base&gt;</td>
+<td class="left">Specifies the base URL/target for all relative URLs in a document</td>
+</tr>
+
+<tr>
+<td class="left">&lt;basefont&gt;</td>
+<td class="left">Not supported in HTML5. Use CSS instead. Specifies a default color, size, and font for all text in a document</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-4-12" class="outline-3">
+<h3 id="sec-4-12"><span class="section-number-3">4.12</span> Programming</h3>
+<div class="outline-text-3" id="text-4-12">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">Tag</td>
+<td class="left">Description</td>
+</tr>
+
+<tr>
+<td class="left">&lt;script&gt;</td>
+<td class="left">Defines a client-side script</td>
+</tr>
+
+<tr>
+<td class="left">&lt;noscript&gt;</td>
+<td class="left">Defines an alternate content for users that do not support client-side scripts</td>
+</tr>
+
+<tr>
+<td class="left">&lt;applet&gt;</td>
+<td class="left">Not supported in HTML5. Use &lt;embed&gt; or &lt;object&gt;  instead.Defines an embedded applet</td>
+</tr>
+
+<tr>
+<td class="left">&lt;embed&gt;</td>
+<td class="left">Defines a container for an external (non-HTML) application</td>
+</tr>
+
+<tr>
+<td class="left">&lt;object&gt;</td>
+<td class="left">Defines an embedded object</td>
+</tr>
+
+<tr>
+<td class="left">&lt;param&gt;</td>
+<td class="left">Defines a parameter for an object</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> HTML attribute</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li>给html元素提供额外的信息
+</li>
+<li>一个html元素可以有很多个attribute
+</li>
+<li>总是在起始tag里面设定
+</li>
+<li>tag的形式是name="value"，name尽量使用小写，value尽量qoute起来，可以使用""或者''  
+</li>
+</ul>
+</div>
+</div>
+
+	</article>
+    </body>
+</html>

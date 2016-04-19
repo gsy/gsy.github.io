@@ -1,0 +1,390 @@
+---
+layout: post
+title: 分布式服务框架-zookeeper
+---
+<p>
+zookeeper是一个分布式服务框架，它主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管理等。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> The Zookeeper Data Model</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+zookeeper使用树状的命名空间，就好像一个分布式的文件系统。不同的是，zookeeper命名空间的节点既可以包含子节点，也可以包含数据，就好像一个文件系统中允许节点既是目录也是文件。节点的路径总是使用绝对路径，使用/分隔，不使用相对路径引用。
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> ZNodes</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+zookeeper的树状命名空间的节点称为ZNode。Znode维护了一个stat的数据结构，包含了数据变动、acl变动的version number，还包含timestamp。version number配合timestamp帮助zookeeper定位数据变动的时间点。每个数据变动都会使得version number增加。zooker的stat结构如下：
+</p>
+<ul class="org-ul">
+<li>czxid
+节点创建时的zxid
+</li>
+<li>mzxid
+节点修改是的zxid
+</li>
+<li>ctime
+节点创建的时间戳
+</li>
+<li>mtime
+节点上次修改时的时间戳
+</li>
+<li>version
+数据变动的version number
+</li>
+<li>aversion
+acl变动的version number
+</li>
+<li>ephemeralOwner
+创建临时节点的session id，如果不是临时节点，那么这个值为0
+</li>
+<li>dataLength
+数据长度
+</li>
+<li>numChildren
+子节点数目
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> Watchers</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+客户端可以对znode设置监控。znode发生变动会触发监控，通知client然后将watch清除。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> Data Access</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+存储在znode的数据的读写都是原子操作。读操作获取znode关联的所有数据，写操作则替换掉所有数据。每个节点有一个ACL(Access Control List)规定了那些操作是被允许的。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> Ephemeral Nodes</h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+字面意思是临时节点。这些节点只在创建这个znode的session中存在，当session失效后，这些节点会被删除，因为这样，临时节点不允许有子节点。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-5" class="outline-3">
+<h3 id="sec-1-5"><span class="section-number-3">1.5</span> zookeeper的时间单位</h3>
+<div class="outline-text-3" id="text-1-5">
+</div><div id="outline-container-sec-1-5-1" class="outline-4">
+<h4 id="sec-1-5-1"><span class="section-number-4">1.5.1</span> zxid</h4>
+<div class="outline-text-4" id="text-1-5-1">
+<p>
+zookeeper transaction id，每次变动操作都会增加zxid。这个id记录了zookeeper所有变动发生的先后顺序
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-5-2" class="outline-4">
+<h4 id="sec-1-5-2"><span class="section-number-4">1.5.2</span> version number</h4>
+<div class="outline-text-4" id="text-1-5-2">
+<p>
+节点的每个数据变动都会增加这个节点的version number，有3个version number
+</p>
+<ul class="org-ul">
+<li>version
+数据变动的version number
+</li>
+<li>cvsersion
+子几点变动的version number
+</li>
+<li>aversion
+acl变动的version number
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-5-3" class="outline-4">
+<h4 id="sec-1-5-3"><span class="section-number-4">1.5.3</span> Ticks</h4>
+<div class="outline-text-4" id="text-1-5-3">
+<p>
+时间滴答。用于各种超时计时和事件计时。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-5-4" class="outline-4">
+<h4 id="sec-1-5-4"><span class="section-number-4">1.5.4</span> Real time</h4>
+<div class="outline-text-4" id="text-1-5-4">
+<p>
+zookeeper不使用真实的物理时间。
+</p>
+</div>
+</div>
+</div>
+</div>
+
+
+
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Zookeeper Watches</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+zookeeper的读操作如getData(), getChildren(), exists()都能设置监控。当监控的节点的数据发送变化时，就会触发一次监听事件，同时监控会被清除，这意味着如果还想监控节点的数据变化，需要重新设置监控。
+</p>
+<ul class="org-ul">
+<li>监听事件只触发一次
+</li>
+<li>zookeeper保证，客户端总是先监听到数据变动事件，然后才能访问变动后的数据。监听事件是异步发送的，不同的监听端收到监听事件的时间是不同的，但是先收到数据变动的通知，然后访问新数据这个顺序是在所有监听端都能得到保证的。
+</li>
+<li>数据变动触发数据变动事件，子节点变动触发子节点变动事件。
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Zookeeper ACL</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+zookeeper对每个节点使用类似unix文件系统中对文件的权限管理，不同的是，不是划分成user,group,other来区别权限，而是使用(id,perms)这样的associate list。id的组成是scheme:expression，举个例子是：ip:172.16.16.1代表了ip地址是172.16.16.1的host。
+</p>
+</div>
+<div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> ACL Permissions</h3>
+<div class="outline-text-3" id="text-3-1">
+<ul class="org-ul">
+<li>create: 可以创建子节点
+</li>
+<li>read: 获取数据，获取子节点列表
+</li>
+<li>write: 写数据
+</li>
+<li>delete: 删除子节点
+</li>
+<li>admin: 可以设置权限
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> kazoo</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+python binding的zookeeper客户端
+</p>
+</div>
+<div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> 安装</h3>
+<div class="outline-text-3" id="text-4-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">pip install kazoo
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Barrier and Queue Tutorial using kazoo</h2>
+<div class="outline-text-2" id="text-5">
+</div><div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1"><span class="section-number-3">5.1</span> Barrier</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+Barrier是一个同步原语，使得一组计算同时开始，同时结束。实现的思路是创建一个父节点，每个计算在实施之前先在父节点下面创建子节点，父节点检查子节点的数目，如果创建够足够多的子节点，计算就可以开始了。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b22222;"># </span><span style="color: #b22222;">encoding: utf-8</span>
+<span style="color: #a0522d;">__author__</span> = <span style="color: #8b2252;">'guang'</span>
+<span style="color: #a020f0;">from</span> kazoo.client <span style="color: #a020f0;">import</span> KazooClient
+<span style="color: #a020f0;">from</span> kazoo.exceptions <span style="color: #a020f0;">import</span> KazooException
+<span style="color: #a020f0;">import</span> logging
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Client</span>(<span style="color: #483d8b;">object</span>):
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">__init__</span>(<span style="color: #a020f0;">self</span>):
+        logging.basicConfig()
+        <span style="color: #a020f0;">self</span>.zk = KazooClient(hosts=<span style="color: #8b2252;">'127.0.0.1:2181'</span>)
+        <span style="color: #a020f0;">self</span>.zk.start()
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Barrier</span>(<span style="color: #483d8b;">object</span>):
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">__init__</span>(<span style="color: #a020f0;">self</span>, root, size, client=<span style="color: #008b8b;">None</span>):
+        <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">        :param root: &#29238;&#33410;&#28857;&#30446;&#24405;</span>
+<span style="color: #8b2252;">        :param size: Barrier&#31561;&#24453;&#30340;&#25805;&#20316;&#30340;&#25968;&#30446;</span>
+<span style="color: #8b2252;">        :param client: zookeeper&#23458;&#25143;&#31471;</span>
+<span style="color: #8b2252;">        :return:</span>
+<span style="color: #8b2252;">        """</span>
+        <span style="color: #a020f0;">self</span>.root = root
+        <span style="color: #a020f0;">self</span>.size = size
+        <span style="color: #a020f0;">if</span> client <span style="color: #a020f0;">is</span> <span style="color: #008b8b;">None</span>:
+            <span style="color: #a020f0;">self</span>.client = Client()
+        <span style="color: #a020f0;">else</span>:
+            <span style="color: #a020f0;">self</span>.client = client
+
+        <span style="color: #a020f0;">try</span>:
+            <span style="color: #a0522d;">stat</span> = <span style="color: #a020f0;">self</span>.client.zk.exists(<span style="color: #a020f0;">self</span>.root, watch=<span style="color: #008b8b;">False</span>)
+            <span style="color: #a020f0;">if</span> stat <span style="color: #a020f0;">is</span> <span style="color: #008b8b;">None</span>:
+                <span style="color: #a020f0;">self</span>.client.zk.create(<span style="color: #a020f0;">self</span>.root, value=<span style="color: #8b2252;">""</span>, acl=<span style="color: #008b8b;">None</span>, ephemeral=<span style="color: #008b8b;">False</span>)
+        <span style="color: #a020f0;">except</span> KazooException, e:
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"Keeper exception when instantiating queue: "</span> + e
+        <span style="color: #a020f0;">except</span> <span style="color: #228b22;">KeyboardInterrupt</span>:
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"Interrupted exception"</span>
+
+        <span style="color: #a020f0;">self</span>.name = <span style="color: #8b2252;">""</span>
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">join</span>(<span style="color: #a020f0;">self</span>, name):
+        <span style="color: #a020f0;">self</span>.client.zk.create(<span style="color: #a020f0;">self</span>.root + <span style="color: #8b2252;">'/'</span> + name, value=<span style="color: #8b2252;">''</span>, acl=<span style="color: #008b8b;">None</span>, ephemeral=<span style="color: #008b8b;">True</span>, sequence=<span style="color: #008b8b;">False</span>)
+        <span style="color: #a020f0;">while</span> <span style="color: #008b8b;">True</span>:
+            <span style="color: #a0522d;">children</span> = <span style="color: #a020f0;">self</span>.client.zk.get_children(<span style="color: #a020f0;">self</span>.root)
+            <span style="color: #a020f0;">if</span> <span style="color: #483d8b;">len</span>(children) &gt;= <span style="color: #a020f0;">self</span>.size:
+                <span style="color: #a020f0;">return</span> <span style="color: #008b8b;">True</span>
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">leave</span>(<span style="color: #a020f0;">self</span>, name):
+        <span style="color: #a020f0;">self</span>.client.zk.delete(<span style="color: #a020f0;">self</span>.root + <span style="color: #8b2252;">'/'</span> + name)
+        <span style="color: #a020f0;">while</span> <span style="color: #008b8b;">True</span>:
+            <span style="color: #a0522d;">children</span> = <span style="color: #a020f0;">self</span>.client.zk.get_children(<span style="color: #a020f0;">self</span>.root)
+            <span style="color: #a020f0;">if</span> <span style="color: #483d8b;">len</span>(children) &lt;= 0:
+                <span style="color: #a020f0;">return</span> <span style="color: #008b8b;">True</span>
+</pre>
+</div>
+<p>
+举个例子，有3个朋友约定了一起开车出去玩，先在加油站集合，人数凑齐了，就一起从加油站出发。约定的人数就是Barrier的size参数，join是表示有几个人出发了，leave表示有几个人到达了加油站，进入了就绪状态。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b22222;"># </span><span style="color: #b22222;">encoding: utf-8</span>
+<span style="color: #a0522d;">__author__</span> = <span style="color: #8b2252;">'guang'</span>
+
+<span style="color: #a020f0;">import</span> unittest
+<span style="color: #a020f0;">from</span> barrier <span style="color: #a020f0;">import</span> Barrier
+<span style="color: #a020f0;">import</span> threading
+<span style="color: #a020f0;">import</span> time
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">CarDriveTest</span>(unittest.TestCase):
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">test_drive_independent</span>(<span style="color: #a020f0;">self</span>):
+
+        <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">drive_to_seattle</span>(name, time_to_gas_station):
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"{0} Leaving House"</span>.<span style="color: #483d8b;">format</span>(name)
+
+            time.sleep(time_to_gas_station)
+
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"{0} Arrived at Gas Station"</span>.<span style="color: #483d8b;">format</span>(name)
+
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"{0} Leaving for Seattle"</span>.<span style="color: #483d8b;">format</span>(name)
+
+        <span style="color: #a0522d;">charlie</span> = threading.Thread(group=<span style="color: #008b8b;">None</span>, target=drive_to_seattle, name=<span style="color: #8b2252;">"charlie"</span>, args=(<span style="color: #8b2252;">"charlie"</span>, 1), kwargs={})
+        charlie.run()
+
+        <span style="color: #a0522d;">mac</span> = threading.Thread(group=<span style="color: #008b8b;">None</span>, target=drive_to_seattle, name=<span style="color: #8b2252;">"mac"</span>, args=(<span style="color: #8b2252;">"mac"</span>, 2), kwargs={})
+        mac.run()
+
+        <span style="color: #a0522d;">dennis</span> = threading.Thread(group=<span style="color: #008b8b;">None</span>, target=drive_to_seattle, name=<span style="color: #8b2252;">"dennis"</span>, args=(<span style="color: #8b2252;">"dennis"</span>, 3), kwargs={})
+        dennis.run()
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">test_drive_together</span>(<span style="color: #a020f0;">self</span>):
+
+        <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">drive_to_seattle</span>(name, time_to_gas_station):
+            b.join(name)
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"{0} Leaving House"</span>.<span style="color: #483d8b;">format</span>(name)
+
+            time.sleep(time_to_gas_station)
+
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"{0} Arrived at Gas Station"</span>.<span style="color: #483d8b;">format</span>(name)
+            b.leave(name)
+
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"{0} Leaving for Seattle"</span>.<span style="color: #483d8b;">format</span>(name)
+
+        <span style="color: #a0522d;">b</span> = Barrier(<span style="color: #8b2252;">"drive_to_seattle"</span>, 2)
+
+        <span style="color: #a0522d;">charlie</span> = threading.Thread(group=<span style="color: #008b8b;">None</span>, target=drive_to_seattle, name=<span style="color: #8b2252;">"charlie"</span>, args=(<span style="color: #8b2252;">"charlie"</span>, 1), kwargs={})
+        charlie.start()
+
+        <span style="color: #a0522d;">mac</span> = threading.Thread(group=<span style="color: #008b8b;">None</span>, target=drive_to_seattle, name=<span style="color: #8b2252;">"mac"</span>, args=(<span style="color: #8b2252;">"mac"</span>, 2), kwargs={})
+        mac.start()
+
+        <span style="color: #a0522d;">dennis</span> = threading.Thread(group=<span style="color: #008b8b;">None</span>, target=drive_to_seattle, name=<span style="color: #8b2252;">"dennis"</span>, args=(<span style="color: #8b2252;">"dennis"</span>, 3), kwargs={})
+        dennis.run()
+
+
+
+
+<span style="color: #a020f0;">if</span> <span style="color: #483d8b;">__name__</span> == <span style="color: #8b2252;">'__main__'</span>:
+    unittest.main()
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2"><span class="section-number-3">5.2</span> Queue</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+zookeeper的节点可以存放数据，但是大小有限制，所以这个recipe的作用不大。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #a0522d;">__author__</span> = <span style="color: #8b2252;">'guang'</span>
+<span style="color: #a020f0;">from</span> kazoo.client <span style="color: #a020f0;">import</span> KazooClient
+<span style="color: #a020f0;">from</span> kazoo.exceptions <span style="color: #a020f0;">import</span> KazooException
+<span style="color: #a020f0;">import</span> logging
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Client</span>(<span style="color: #483d8b;">object</span>):
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">__init__</span>(<span style="color: #a020f0;">self</span>):
+        logging.basicConfig()
+        <span style="color: #a020f0;">self</span>.zk = KazooClient(hosts=<span style="color: #8b2252;">'127.0.0.1:2181'</span>)
+        <span style="color: #a020f0;">self</span>.zk.start()
+
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Queue</span>(<span style="color: #483d8b;">object</span>):
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">__init__</span>(<span style="color: #a020f0;">self</span>, root, client=<span style="color: #008b8b;">None</span>):
+        <span style="color: #a020f0;">self</span>.root = root
+        <span style="color: #a020f0;">if</span> client <span style="color: #a020f0;">is</span> <span style="color: #008b8b;">None</span>:
+            <span style="color: #a020f0;">self</span>.client = Client()
+        <span style="color: #a020f0;">else</span>:
+            <span style="color: #a020f0;">self</span>.client = client
+
+        <span style="color: #a020f0;">try</span>:
+            <span style="color: #a0522d;">stat</span> = <span style="color: #a020f0;">self</span>.client.zk.exists(<span style="color: #a020f0;">self</span>.root, watch=<span style="color: #008b8b;">False</span>)
+            <span style="color: #a020f0;">if</span> stat <span style="color: #a020f0;">is</span> <span style="color: #008b8b;">None</span>:
+                <span style="color: #a020f0;">self</span>.client.zk.create(<span style="color: #a020f0;">self</span>.root, value=<span style="color: #8b2252;">""</span>, acl=<span style="color: #008b8b;">None</span>, ephemeral=<span style="color: #008b8b;">False</span>)
+        <span style="color: #a020f0;">except</span> KazooException, e:
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"Keeper exception when instantiating queue: "</span> + e
+        <span style="color: #a020f0;">except</span> <span style="color: #228b22;">KeyboardInterrupt</span>:
+            <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"Interrupted exception"</span>
+
+        <span style="color: #a020f0;">self</span>.name = <span style="color: #8b2252;">""</span>
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">produce</span>(<span style="color: #a020f0;">self</span>, number):
+        <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">        Add element to the queue.</span>
+<span style="color: #8b2252;">        :param number:</span>
+<span style="color: #8b2252;">        :return:</span>
+<span style="color: #8b2252;">        """</span>
+        <span style="color: #a020f0;">self</span>.client.zk.create(<span style="color: #a020f0;">self</span>.root + <span style="color: #8b2252;">"/element"</span>, number,  ephemeral=<span style="color: #008b8b;">False</span>, sequence=<span style="color: #008b8b;">True</span>)
+        <span style="color: #a020f0;">return</span> <span style="color: #008b8b;">True</span>
+
+    <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">consume</span>(<span style="color: #a020f0;">self</span>):
+        <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">        Remove first element from the queue.</span>
+<span style="color: #8b2252;">        :return: first element's value</span>
+<span style="color: #8b2252;">        """</span>
+        <span style="color: #a020f0;">while</span> <span style="color: #008b8b;">True</span>:
+            <span style="color: #a0522d;">children</span> = <span style="color: #a020f0;">self</span>.client.zk.get_children(<span style="color: #a020f0;">self</span>.root)
+            <span style="color: #a020f0;">if</span> <span style="color: #483d8b;">len</span>(children) == 0:
+                <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"Going to wait"</span>
+            <span style="color: #a020f0;">else</span>:
+                <span style="color: #a0522d;">sequences</span> = [element[7:] <span style="color: #a020f0;">for</span> element <span style="color: #a020f0;">in</span> children]
+                <span style="color: #a0522d;">min_number</span> = <span style="color: #483d8b;">min</span>(sequences)
+                <span style="color: #a020f0;">print</span> <span style="color: #8b2252;">"min node: "</span> + <span style="color: #a020f0;">self</span>.root + <span style="color: #8b2252;">"/element"</span> + min_number
+                <span style="color: #a0522d;">value</span>, <span style="color: #a0522d;">stat</span> = <span style="color: #a020f0;">self</span>.client.zk.get(<span style="color: #a020f0;">self</span>.root + <span style="color: #8b2252;">"/element"</span> + min_number)
+                <span style="color: #a020f0;">self</span>.client.zk.delete(<span style="color: #a020f0;">self</span>.root + <span style="color: #8b2252;">"/element"</span> + min_number)
+                <span style="color: #a020f0;">print</span> value
+</pre>
+</div>
+</div>
+</div>
+</div>

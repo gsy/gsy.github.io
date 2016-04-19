@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+    <title>前端开发环境搭建</title>
+    <!-- link to main stylesheet -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+</head>
+
+    
+    <body>
+	<article class="content">
+	    <h1 class="title">
+		<a href="" title="前端开发环境搭建">前端开发环境搭建</a>
+	    </h1>
+	    <p>
+搭建一个纯前端的开发环境。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 工具集</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Jekyll</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+静态站点生成器 &amp; server。
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> Jade</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+一个Node模板工具，用简练的语法来生成html。
+</p>
+<ul class="org-ul">
+<li>生成html
+</li>
+<li>动态代码特性
+</li>
+<li>代码重用，符合DRY原则
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-1-2-1" class="outline-4">
+<h4 id="sec-1-2-1"><span class="section-number-4">1.2.1</span> 安装</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<p>
+npm不能安装，说是项目重命名为pug了。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install pug --global
+</pre>
+</div>
+<p>
+pug项目没有文档，不跟它玩。
+选择python版的jade。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">pip install pyjade
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-2-2" class="outline-4">
+<h4 id="sec-1-2-2"><span class="section-number-4">1.2.2</span> 使用</h4>
+<div class="outline-text-4" id="text-1-2-2">
+</div><div id="outline-container-sec-1-2-2-1" class="outline-5">
+<h5 id="sec-1-2-2-1">输出</h5>
+<div class="outline-text-5" id="text-1-2-2-1">
+<p>
+test.jade
+</p>
+<pre class="example">
+!!! 5
+html(lang="en")
+  head
+    title= pageTitle
+    script(type='text/javascript')
+      if (foo) {
+         bar()
+      }
+  body
+    h1.title Jade - node template engine
+    #container
+      if youAreUsingJade
+        p You are amazing
+      else
+        p Get on it!
+</pre>
+<p>
+语法跟python很像。然后输出成html：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">pyjade -c html -o test.html test.jade
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-2-2-2" class="outline-5">
+<h5 id="sec-1-2-2-2">更多例子</h5>
+<div class="outline-text-5" id="text-1-2-2-2">
+<p>
+见jade的文档:<a href="http://jade-lang.com/reference/">Jade Language Reference</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> Sass</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+Css Preprocessor。 
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> Autoprefixer</h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+帮助css添加vender的前缀，数据来源是<a href="http://caniuse.com/">Can I Use</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-5" class="outline-3">
+<h3 id="sec-1-5"><span class="section-number-3">1.5</span> Browser Sync</h3>
+<div class="outline-text-3" id="text-1-5">
+<p>
+浏览器同步测试工具。
+</p>
+</div>
+<div id="outline-container-sec-1-5-1" class="outline-4">
+<h4 id="sec-1-5-1"><span class="section-number-4">1.5.1</span> 安装</h4>
+<div class="outline-text-4" id="text-1-5-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install -g browser-sync
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-6" class="outline-3">
+<h3 id="sec-1-6"><span class="section-number-3">1.6</span> Gulp</h3>
+<div class="outline-text-3" id="text-1-6">
+<p>
+自动化构建工具
+</p>
+</div>
+<div id="outline-container-sec-1-6-1" class="outline-4">
+<h4 id="sec-1-6-1"><span class="section-number-4">1.6.1</span> 安装</h4>
+<div class="outline-text-4" id="text-1-6-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install -g gulp
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-6-2" class="outline-4">
+<h4 id="sec-1-6-2"><span class="section-number-4">1.6.2</span> API文档</h4>
+<div class="outline-text-4" id="text-1-6-2">
+<ul class="org-ul">
+<li>gulp.src(globs [,options])
+stream的起点，按照匹配模式(glob)或者一组模式(array of globs)，将文件转化成可以piped到其他插件中的对象
+</li>
+<li>gulp.dest(path [,options])
+将管道中的数据写入到输出文件夹。
+</li>
+<li>gulp.task(name [,deps], fn)
+<pre class="example">
+gulp.task('mytask', ['array', 'of', 'task', 'names'], function() {
+  // 做一些事
+});
+</pre>
+<ul class="org-ul">
+<li>name指定需要执行的task名称
+</li>
+<li>deps是task执行之前需要完成的tasks
+</li>
+<li>fn是回调函数
+</li>
+</ul>
+</li>
+<li>gulp.watch(glob [,opts], tasks)
+监视文件的变动，当发生变动时，执行tasks
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-sec-1-7" class="outline-3">
+<h3 id="sec-1-7"><span class="section-number-3">1.7</span> package.json for NPM</h3>
+<div class="outline-text-3" id="text-1-7">
+<blockquote>
+<p>
+node的工程项目的根目录底下，一般都有一个package.json文件，定义了这个项目需要的各种模块，以及项目的配置信息（比如名称、版本、许可证等元数据）。npm install命令根据这个配置文件，自动下载所需的模块，也就是配置项目所需的运行和开发环境。
+</p>
+</blockquote>
+<p>
+package.json是一个用json格式写的关于项目的各种信息的一个文件，package.json的组成
+</p>
+<ul class="org-ul">
+<li>name &amp; version
+name和version构成一个项目的唯一标识。
+</li>
+<li>scripts
+指定了运行脚本明德的npm命令行缩写，比如start指定的是运行npm run start时，所要执行的命令。
+</li>
+<li>dependencies, devDependencies
+指定的是项目的依赖模块。dependencies指定的是项目运行时依赖的模块，devDependencies指定的是项目开发时依赖的模块。
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+
+
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 脚手架</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+我们需要一个符合jekyll工程目录结构，使用gulp做自动化管理，将所有的前端工具都整合到一起的脚手架。是他,是他,就是他,少年英雄,小哪吒:
+<a href="https://github.com/agragregra/jekyll-gulp-autoprefixer-sass-bourbon-jade-browser-sync">jekyll-gulp-autoprefixer-sass-bourbon-jade-browser-sync</a>
+</p>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 使用</h3>
+<div class="outline-text-3" id="text-2-1">
+<ul class="org-ul">
+<li>clone项目
+</li>
+<li>进入clone下来的项目的根目录，执行npm install，安装所有package.json指定的需要的模块
+</li>
+<li>终端执行gulp命令
+</li>
+<li>开瓶啤酒庆祝下  
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+	</article>
+    </body>
+</html>

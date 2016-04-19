@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+    <title>mysql抓包分析</title>
+    <!-- link to main stylesheet -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+</head>
+
+    
+    <body>
+	<article class="content">
+	    <h1 class="title">
+		<a href="" title="mysql抓包分析">mysql抓包分析</a>
+	    </h1>
+	    <p>
+除了mysql的日志之外，可以通过抓包来观察mysql server的行为。这篇文章记录的是使用tcpdump来捕获发送到mysql server及mysql server发出的包，然后使用pt-query-digest工具分析数据。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 1. tcpdump</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> 1.1 什么是tcpdump</h3>
+<div class="outline-text-3" id="text-1-1">
+<blockquote>
+<p>
+tcpdump - dump traffic on a network
+</p>
+</blockquote>
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> 1.2 tcpdump怎么用</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+Tcpdump可以根据给出的bool表达式的值，抓取一个网络接口的内容并且打印在标准输出上。如果需要存储抓取的包数据以便分析，可以通过-w选项指定数据保存到数据保存的文；-r选项使得tcpdump从文件中读取数据包内容而不是从网络接口抓取。Tcpdump默认情况下一直抓取数据包，直到被SIGINT信号（通常情况下是control-C发出）或者SIGTERM信号（通常情况下是kill命令发出）中断。
+</p>
+</div>
+<div id="outline-container-sec-1-2-1" class="outline-4">
+<h4 id="sec-1-2-1"><span class="section-number-4">1.2.1</span> 1.2.1 常用参数</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<ul class="org-ul">
+<li>-c count
+当接收到count个数据包时退出
+</li>
+<li>-i interface
+指定监听的网络接口。值为any可以监听所有网络接口。
+</li>
+<li>-s
+抓取数据包的最大长度，当大于这个长度时，数据包会被截断。设置成0会使用默认值65535，即包的最大长度是65535字节。
+</li>
+<li>-l 
+使得输出的结果是line buffer的。
+</li>
+<li>-nn
+不做地址到名字的转换（主机地址，端口号等）
+</li>
+<li>q
+打印少点协议相关的信息，输出更简洁      
+</li>
+<li>-tttt
+打印时间戳      
+</li>
+<li>-w
+指定捕获数据包写入的文件。值为-时写到标准输出上。
+</li>
+<li>-x
+除了打印数据包的包头之外，还打印出数据包的包内容。打印出来的是16进制数据。
+</li>
+<li>dst
+指定目标的host和port
+</li>
+<li>src
+指定源的host和port
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-2-2" class="outline-4">
+<h4 id="sec-1-2-2"><span class="section-number-4">1.2.2</span> 1.2.2 逻辑运算</h4>
+<div class="outline-text-4" id="text-1-2-2">
+<p>
+tcpdump提供了and，or和not这三个逻辑运算
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> 1.3 实战</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>在server上监听3306端口，捕获数据包
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-sh">tcpdump -i wlan0 -s 0 -l -w - dst port 3306
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 2.pt-query-digest</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 2.1 pt-query-digest是什么</h3>
+<div class="outline-text-3" id="text-2-1">
+<blockquote>
+<p>
+pt-query-digest - Analyze MySQL queries from logs, processlist, and tcpdump
+</p>
+</blockquote>
+<p>
+pt-query-digest是percona工具集的一员，通过mysql的slow log, general log, binary log等日志文件来分析mysql查询。也可以分析server当前的processlist的数据及tcpdump抓取的mysql协议数据。查询数据默认情况下以fingerprint为依据分组，按查询时间递减排序（所以慢查询在最先）。
+</p>
+<ul class="org-ul">
+<li>生成slow.log的报告
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-sh">pt-query-digest slow.log
+</pre>
+</div>
+<ul class="org-ul">
+<li>分析host1上processlist中最慢的查询
+<div class="org-src-container">
+
+<pre class="src src-sh">pt-query-digest --processlist <span style="color: #a0522d;">h</span>=host1
+</pre>
+</div>
+</li>
+<li>使用tcpdump捕获mysql协议数据，生成慢查询报告   
+<div class="org-src-container">
+
+<pre class="src src-sh">tcpdump -s 65535 -x -nn -q -tttt -i any -c 1000 port 3306 &gt; mysql.tcp.txt
+
+pt-query-digest --type tcpdump mysql.tcp.txt
+</pre>
+</div>
+</li>
+<li>保存slow.log到host2以便以后的分析
+<div class="org-src-container">
+
+<pre class="src src-sh">pt-query-digest --review <span style="color: #a0522d;">h</span>=host2 --no-report slow.log
+</pre>
+</div>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-2-1-1" class="outline-4">
+<h4 id="sec-2-1-1"><span class="section-number-4">2.1.1</span> 2.1.1 fingerprint</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<p>
+fingerprint是将sql字符串进行简化后做运算得到的一个16进制值，这个值能表示这类sql的特征。比如说有两个sql：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sql"><span style="color: #a020f0;">SELECT</span> <span style="color: #a020f0;">name</span>, password <span style="color: #a020f0;">FROM</span> <span style="color: #483d8b;">user</span> <span style="color: #a020f0;">WHERE</span> id=<span style="color: #8b2252;">'12823'</span>;
+<span style="color: #a020f0;">select</span> <span style="color: #a020f0;">name</span>,   password <span style="color: #a020f0;">from</span> <span style="color: #483d8b;">user</span>
+   <span style="color: #a020f0;">where</span> id=5;
+</pre>
+</div>
+<p>
+简化后的sql的样子是：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sql"><span style="color: #a020f0;">select</span> <span style="color: #a020f0;">name</span>, password <span style="color: #a020f0;">from</span> <span style="color: #483d8b;">user</span> <span style="color: #a020f0;">where</span> id=?
+</pre>
+</div>
+<p>
+可以看出，跟sql解析无关的大小写，多余的空格，具体的参数等都被去掉了，留下的是对sql执行有影响的部分，所以fingerprint能表示相似sql的特征。fingerprint是生成的报告中的query_id的值。
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> 2.2 pt-query-digest的分析结果</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+先看下整个分析结果：
+</p>
+<blockquote>
+<p>
+insert into tasks (`subject`, `start_date`, `end_date`, `description`) values ("test data3", "2014-04-01", "2015-08-01", "test insert data.")\G
+</p>
+
+<p>
+select start_date, end_date from tasks\G
+</p>
+</blockquote>
+<p>
+整个报告包括3个部分：
+</p>
+<ul class="org-ul">
+<li>1.总体的运行时间和查询次数
+</li>
+<li>2.查询的性能报告汇总
+</li>
+<li>3.每个查询的详细报告
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-2-2-1" class="outline-4">
+<h4 id="sec-2-2-1"><span class="section-number-4">2.2.1</span> 2.2.1 Overall</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<p>
+总的运行时间和查询次数，执行时间和影响行数，查询数据包的大小和warning的个数    
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-2-2" class="outline-4">
+<h4 id="sec-2-2-2"><span class="section-number-4">2.2.2</span> 2.2.2 Profile</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<p>
+查询的性能汇总结果。包含以下列
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">名称</th>
+<th scope="col" class="left">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">Rank</td>
+<td class="left">在所有查询里面的排名</td>
+</tr>
+
+<tr>
+<td class="left">Query ID</td>
+<td class="left">查询的fingerprint，作为id来标识这个查询</td>
+</tr>
+
+<tr>
+<td class="left">Response time</td>
+<td class="left">总的相应时间及在所有查询时间中占的比例</td>
+</tr>
+
+<tr>
+<td class="left">Calls</td>
+<td class="left">执行次数</td>
+</tr>
+
+<tr>
+<td class="left">R/Call</td>
+<td class="left">查询的平均执行时间</td>
+</tr>
+
+<tr>
+<td class="left">V/M</td>
+<td class="left">响应时间的方差</td>
+</tr>
+
+<tr>
+<td class="left">Item</td>
+<td class="left">精炼的查询表示</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2-3" class="outline-4">
+<h4 id="sec-2-2-3"><span class="section-number-4">2.2.3</span> 2.2.3 each query</h4>
+<div class="outline-text-4" id="text-2-2-3">
+<p>
+第三部分是各个查询的测量结果。包含以下列：
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">名称</th>
+<th scope="col" class="left">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">Count</td>
+<td class="left">执行次数</td>
+</tr>
+
+<tr>
+<td class="left">Exec time</td>
+<td class="left">执行时间</td>
+</tr>
+
+<tr>
+<td class="left">Rows affecte</td>
+<td class="left">影响函数</td>
+</tr>
+
+<tr>
+<td class="left">Query size</td>
+<td class="left">查询数据包的大小</td>
+</tr>
+
+<tr>
+<td class="left">Warning count</td>
+<td class="left">警告个数</td>
+</tr>
+</tbody>
+</table>
+<p>
+接下来是查询的时间分布图和具体的sql。
+</p>
+</div>
+</div>
+</div>
+
+
+
+
+
+
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> 2.3 从分析结果可以得到什么</h3>
+<div class="outline-text-3" id="text-2-3">
+<ul class="org-ul">
+<li>2.3.1 最费时的查询对应的sql语句
+思路是默认情况下pt-query-digest生成的报告是根据查询执行时间按降序排列的，所以profile中rank为1对应的query_id就是我们要找的最费时的sql。
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b22222;">#</span><span style="color: #b22222;">!/usr/bin/env python</span>
+<span style="color: #b22222;"># </span><span style="color: #b22222;">encoding: utf-8</span>
+<span style="color: #a020f0;">import</span> re
+
+<span style="color: #a0522d;">profile_pattern</span> = re.<span style="color: #483d8b;">compile</span>(<span style="color: #8b2252;">"^# Profile$"</span>)
+<span style="color: #a0522d;">sql_pattern</span> = re.<span style="color: #483d8b;">compile</span>(<span style="color: #8b2252;">"^select|update|delete|insert|set|commit|rollback|create|drop|alter"</span>, re.IGNORECASE)
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">read_file</span>(path):
+    <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">    &#35835;&#21462;&#25991;&#20214;, &#36820;&#22238;&#34892;&#25968;&#25454;&#30340;generator</span>
+<span style="color: #8b2252;">    """</span>
+    <span style="color: #a020f0;">with</span> <span style="color: #483d8b;">open</span>(path) <span style="color: #a020f0;">as</span> f:
+        <span style="color: #a020f0;">while</span> <span style="color: #008b8b;">True</span>:
+            <span style="color: #a0522d;">line</span> = f.readline()
+            <span style="color: #a020f0;">yield</span> line
+            <span style="color: #a020f0;">if</span> <span style="color: #a020f0;">not</span> line:
+                <span style="color: #a020f0;">break</span>
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">match</span>(pattern, text):
+    <span style="color: #a020f0;">return</span> pattern.match(text) <span style="color: #a020f0;">is</span> <span style="color: #a020f0;">not</span> <span style="color: #008b8b;">None</span>;
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">get_profile</span>(lines):
+    <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">    &#33719;&#21462;&#24635;&#20307;&#30340;profile&#20449;&#24687;</span>
+<span style="color: #8b2252;">    """</span>
+    <span style="color: #a0522d;">raw_data</span> = []
+    <span style="color: #a020f0;">for</span> line <span style="color: #a020f0;">in</span> lines:
+        <span style="color: #a020f0;">if</span> match(profile_pattern, line):
+            <span style="color: #a0522d;">header_line</span> = lines.<span style="color: #483d8b;">next</span>()
+            <span style="color: #a0522d;">seperator_line</span> = lines.<span style="color: #483d8b;">next</span>()            
+            <span style="color: #a020f0;">for</span> line <span style="color: #a020f0;">in</span> lines:
+                <span style="color: #a020f0;">if</span> line == <span style="color: #8b2252;">"\n"</span>:
+                    <span style="color: #a020f0;">break</span>
+                raw_data.append(line)
+            <span style="color: #a020f0;">break</span>
+
+    <span style="color: #a0522d;">profiles</span> = []
+    <span style="color: #a020f0;">for</span> line <span style="color: #a020f0;">in</span> raw_data:
+        <span style="color: #a0522d;">attributs</span> = line.split()
+        <span style="color: #a0522d;">profile_object</span> = {}
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'rank'</span>] = attributs[1]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'query_id'</span>] = attributs[2]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'response_time_value'</span>] = attributs[3]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'response_time_percent'</span>] = attributs[4]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'calls'</span>] = attributs[5]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'time_per_call'</span>] = attributs[6]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'v_m'</span>] = attributs[7]
+        <span style="color: #a0522d;">profile_object</span>[<span style="color: #8b2252;">'item'</span>] = <span style="color: #8b2252;">' '</span>.join(attributs[8:])
+        profiles.append(profile_object)
+
+    <span style="color: #a020f0;">return</span> profiles
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">get_slowest_query_id</span>(profiles):
+    <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">    &#33719;&#21462;&#26368;&#24930;&#26597;&#35810;&#30340;id</span>
+<span style="color: #8b2252;">    """</span>
+    <span style="color: #a020f0;">for</span> profile <span style="color: #a020f0;">in</span> profiles:
+        <span style="color: #a020f0;">if</span> profile[<span style="color: #8b2252;">'rank'</span>] == <span style="color: #8b2252;">'1'</span>:
+            <span style="color: #a020f0;">return</span> profile[<span style="color: #8b2252;">'query_id'</span>]
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">get_query_sql</span>(query_id, lines):
+    <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">    &#26681;&#25454;id&#26597;&#25214;&#23545;&#24212;&#30340;sql&#35821;&#21477;</span>
+<span style="color: #8b2252;">    """</span>
+    <span style="color: #a0522d;">query_pattern</span> = re.<span style="color: #483d8b;">compile</span>(<span style="color: #8b2252;">"ID {}"</span>.<span style="color: #483d8b;">format</span>(query_id))
+    <span style="color: #a020f0;">for</span> line <span style="color: #a020f0;">in</span> lines:
+        <span style="color: #a020f0;">if</span> query_pattern.search(line) <span style="color: #a020f0;">is</span> <span style="color: #a020f0;">not</span> <span style="color: #008b8b;">None</span>:
+            <span style="color: #a020f0;">for</span> line <span style="color: #a020f0;">in</span> lines:
+                <span style="color: #a020f0;">if</span> match(sql_pattern, line):
+                    <span style="color: #a020f0;">return</span> line
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">slowest</span>(path):
+    <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">    &#23558;&#25152;&#26377;&#27493;&#39588;&#20018;&#32852;&#36215;&#26469;</span>
+<span style="color: #8b2252;">    """</span>
+    <span style="color: #a0522d;">lines</span> = read_file(path)
+    <span style="color: #a0522d;">profiles</span> = get_profile(lines)
+    <span style="color: #a0522d;">query_id</span> = get_slowest_query_id(profiles)
+    <span style="color: #a020f0;">return</span> get_query_sql(query_id, lines)    
+
+
+<span style="color: #a020f0;">if</span> <span style="color: #483d8b;">__name__</span> == <span style="color: #8b2252;">"__main__"</span>:
+    <span style="color: #a0522d;">sql</span> = slowest(<span style="color: #8b2252;">"result.txt"</span>)
+    <span style="color: #a020f0;">print</span> sql
+</pre>
+</div>
+</li>
+
+<li>2.3.2 查询次数最多的查询对应的sql语句
+获取profile参数的过程和上面的脚本一样。不同的是需要获取查询次数最多的query_id
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #a020f0;">def</span> <span style="color: #0000ff;">get_most_call_query_id</span>(profiles):
+    <span style="color: #8b2252;">"""</span>
+<span style="color: #8b2252;">    &#33719;&#21462;&#26597;&#35810;&#27425;&#25968;&#26368;&#22810;&#30340;id</span>
+<span style="color: #8b2252;">    """</span>
+
+    <span style="color: #a020f0;">if</span> <span style="color: #a020f0;">not</span> profiles:
+        <span style="color: #a020f0;">return</span> <span style="color: #8b2252;">""</span>
+
+    <span style="color: #a0522d;">copy</span> = <span style="color: #483d8b;">sorted</span>(profiles, key=<span style="color: #a020f0;">lambda</span> profile: profile[<span style="color: #8b2252;">'calls'</span>])
+    <span style="color: #a020f0;">return</span> copy[0][<span style="color: #8b2252;">'query_id'</span>]
+
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">most_call</span>(path):
+    <span style="color: #a0522d;">lines</span> = read_file(path)
+    <span style="color: #a0522d;">profiles</span> = get_profile(lines)
+    <span style="color: #a0522d;">query_id</span> = get_most_call_query_id(profiles)
+    <span style="color: #a020f0;">return</span> get_query_sql(query_id, lines)
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+	</article>
+    </body>
+</html>

@@ -1,33 +1,45 @@
 article.post
-  padding-bottom: 0
+  padding-bottom: 10px
   margin-bottom: 30px
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05)
+  Border-bottom: 1px solid rgba(0, 0, 0, 0.1)
+
+  a
+    text-decoration: none
+    color: #61aedc
 
   h1
     margin-top: 0.5rem
     margin-bottom: 0.25rem
-
+    font-size: 2.025rem
     a
-      color: #de3f1c
-      line-height: 1em
-      font-size: 1.4em
-      text-decoration: underline
+      color: #2d2d2d
+      
+    a:hover
+      color: #61aedc
+
       
   .date
     font-size: 1rem
     font-weight: normal
     color: #b4b4b4
 
-  .content
-    p
-      line-height: 1.6
-    a
-      color: #444
-      text-decoration: underline
       
+.container
+  display: flex
+  
+.row
+  flex-flow: row wrap
+  flex: 0 0 100%
 
-  
-  
+  @media (min-width: 48em)
+    flex: 1
 
-  
-  
+  .gutter
+    marign: 0 20px
+    padding: 0 20px
+
+.column
+  flex-flow: column
+  flex: 0 0 100%
+  @media (min-width: 48em)
+    flex: 1  

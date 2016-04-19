@@ -1,0 +1,360 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Flex Container &amp; Flex Items</a>
+<ul>
+<li><a href="#sec-1-1">1.1. Flex Container布局</a>
+<ul>
+<li><a href="#sec-1-1-1">1.1.1. flex-direction</a></li>
+<li><a href="#sec-1-1-2">1.1.2. flex-wrap</a></li>
+<li><a href="#sec-1-1-3">1.1.3. flex-flow</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-2">1.2. Flex Lines</a></li>
+<li><a href="#sec-1-3">1.3. 缩放能力-Flexibility</a></li>
+<li><a href="#sec-1-4">1.4. 对齐</a>
+<ul>
+<li><a href="#sec-1-4-1">1.4.1. 使用'auto' margins</a></li>
+<li><a href="#sec-1-4-2">1.4.2. 使用'justify-content'对齐</a></li>
+<li><a href="#sec-1-4-3">1.4.3. 使用'align-items'和'align-self'</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#sec-2">2. 实战</a>
+<ul>
+<li><a href="#sec-2-1">2.1. 圣杯布局</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<p>
+长久以来，CSS缺少合适的布局机制，直到 <a href="https://www.w3.org/TR/css-flexbox-1/">Flexbox </a>出现。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Flex Container &amp; Flex Items</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+布局很多时候追求的是规则得摆放元素，就像看不见的线框定了一个范围，元素就放入其中，如果框定的范围跟元素的大小不一致时，元素能自动的缩放。这就是Flex Container想要达到的效果。
+看一下gtk+的 <a href="https://developer.gnome.org/gtk3/stable/LayoutContainers.html">layout</a> ，多么直观，多么丰富的工具库，就像家里开了个武器库的感觉。web component组件标准化是不是来得太慢了？
+Flex Container是一个排版的框架，在其中的内容称为Flex Item。
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Flex Container布局</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+flex container有两个轴，可以支持在两个方向上布局元素。
+[[]]
+</p>
+<ul class="org-ul">
+<li>使用main axis
+水平排列
+</li>
+<li>使用cross axis
+垂直排列
+</li>
+<li>联合main axis和cross axis
+流排列，如果main axis到头了，沿着cross axis拓展，反之亦然。
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-1-1-1" class="outline-4">
+<h4 id="sec-1-1-1"><span class="section-number-4">1.1.1</span> flex-direction</h4>
+<div class="outline-text-4" id="text-1-1-1">
+<p>
+flex item在flex container中摆放的顺序
+</p>
+<ul class="org-ul">
+<li>row
+<style type="text/css">
+
+.container {
+  padding: 0;
+  margin: 0;
+  width: 300px;
+  background: black;
+  border-radius: 10px;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.item {
+  background: rgba(80, 80, 80, 0.9);
+  border-radius: 5px;
+  padding: 5px;
+  margin: 5px;
+  font-size: 30px;
+  width: 80px;
+  color: white;
+  text-align: center;
+}
+</style>
+<div class="container flex-row">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+</div>
+</li>
+<li>row-reverse
+<style type="text/css">
+.flex-row-reverse {
+  display: flex;
+  flex-direction: row-reverse;
+}  
+</style>
+<div class="container flex-row-reverse">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+</div>
+</li>
+<li>column
+<style type="text/css">
+  .flex-column {
+    display: flex;
+    flex-direction: column;
+  }  
+  </style>
+  <div class="container flex-column">
+    <div class="item" style="width:auto;">1</div>
+    <div class="item" style="width:auto;">2</div>
+    <div class="item" style="width:auto;">3</div>
+  </div>
+</li>
+<li>column-reverse
+<style type="text/css">
+  .flex-column-reverse {
+    display: flex;
+    flex-direction: column-reverse;
+  }  
+  </style>
+  <div class="container flex-column-reverse">
+    <div class="item" style="width:auto;">1</div>
+    <div class="item" style="width:auto;">2</div>
+    <div class="item" style="width:auto;">3</div>
+  </div>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-1-2" class="outline-4">
+<h4 id="sec-1-1-2"><span class="section-number-4">1.1.2</span> flex-wrap</h4>
+<div class="outline-text-4" id="text-1-1-2">
+<p>
+flex-wrap控制着flex container是单行的还是多行的。如果是多行的话，cross-axis的方向决定了新的一行将怎样加入进来
+</p>
+<ul class="org-ul">
+<li>nowrap
+flex container是单行的
+ <div class="container flex-row" style="flex-wrap:no-wrap;">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+  <div class="item">4</div>
+  <div class="item">5</div>
+  <div class="item">6</div>
+  <div class="item">7</div>
+  <div class="item">8</div>
+</div>
+</li>
+<li>wrap
+flex container是多行的
+<div class="container flex-row" style="flex-wrap:wrap;">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+  <div class="item">4</div>
+  <div class="item">5</div>
+  <div class="item">6</div>
+  <div class="item">7</div>
+  <div class="item">8</div>
+</div>
+</li>
+
+<li>wrap-revserse
+ <div class="container flex-row" style="flex-wrap:wrap-reverse;">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+  <div class="item">4</div>
+  <div class="item">5</div>
+  <div class="item">6</div>
+  <div class="item">7</div>
+  <div class="item">8</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<div id="outline-container-sec-1-1-3" class="outline-4">
+<h4 id="sec-1-1-3"><span class="section-number-4">1.1.3</span> flex-flow</h4>
+<div class="outline-text-4" id="text-1-1-3">
+<p>
+flex-flow是flex-direction和flex-wrap的简写。在同一个语句里面指定flex-direction和flex-wrap。
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> Flex Lines</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+flex container内的布局规则可以看成有flex lines构成的，元素被放置在flex lines中，同一个flex line里面的元素可以做对齐操作。多行flex container中，当flex item被分配到不同的行时，不同行的排版是相互独立的。'justify-content'和'align-self'属性对每行重新计算的。在多行flex container中，cross size(可以看成列高)是包含每行内容的最小高度，行里面的内容对齐由'align-content'属性指定。在单行flex container中，'align-content'没有作用。
+可以在flex item中指定flex: auto属性使得flex item占满某行。
+</p>
+<div class="container" style="display: flex flex-flow: row wrap;">
+  <div class="item" style="flex:auto">1</div>
+  <div class="item" style="flex:auto">2</div>
+  <div class="item" style="flex:auto">3</div>
+  <div class="item" style="flex:auto">4</div>  
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> 缩放能力-Flexibility</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+'flex'属性指定了当容器内空间怎样分配。
+</p>
+<ul class="org-ul">
+<li>flex grow factor
+当空间富裕时，flex item将有多大的权重因数去获取多余的空间。权重跟使用的多余空间是成比例的。默认是1
+</li>
+<li>flex shrink factor
+当空间不够时，flex item将以多大的权重因数将自己缩小，默认是1
+</li>
+<li>flex basis
+没有缩放前元素占用的空间大小。设置成auto会使用能包围元素内容的大小。
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> 对齐</h3>
+<div class="outline-text-3" id="text-1-4">
+</div><div id="outline-container-sec-1-4-1" class="outline-4">
+<h4 id="sec-1-4-1"><span class="section-number-4">1.4.1</span> 使用'auto' margins</h4>
+<div class="outline-text-4" id="text-1-4-1">
+<p>
+flex item指定auto margin的效果
+</p>
+<ul class="org-ul">
+<li>auto margin不算在flex bases和flexible length的计算中
+</li>
+<li>多余的空间会优先分配给auto margin，在'justify-content'和'align-self'之前
+</li>
+<li>overflow boxes忽略auto margin
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-4-2" class="outline-4">
+<h4 id="sec-1-4-2"><span class="section-number-4">1.4.2</span> 使用'justify-content'对齐</h4>
+<div class="outline-text-4" id="text-1-4-2">
+<ul class="org-ul">
+<li>flex-start
+从main-start开始排列子元素
+</li>
+<li>flex-end
+从main-end开始插入元素，之前插入的元素往main-start方向移动
+</li>
+<li>center
+插入元素后居中对齐，元素组到main-start和main-end之间的距离是相等的
+</li>
+<li>space between
+平均分布。头尾元素没有多余空间
+</li>
+<li>space around
+平均分布。
+</li>
+<li>例子
+<p data-height="244" data-theme-id="0" data-slug-hash="bpLqMz" data-default-tab="result" data-user="guangdane" class="codepen">See the Pen <a href="http://codepen.io/guangdane/pen/bpLqMz/">bpLqMz</a> by guang (<a href="http://codepen.io/guangdane">@guangdane</a>) on <a href="http://codepen.io">CodePen</a>.</p>
+<script async src="//assets.codepen.io/assets/embed/ei.js"></script>
+</li>
+</ul>
+</div>
+</div>
+
+
+
+
+<div id="outline-container-sec-1-4-3" class="outline-4">
+<h4 id="sec-1-4-3"><span class="section-number-4">1.4.3</span> 使用'align-items'和'align-self'</h4>
+<div class="outline-text-4" id="text-1-4-3">
+<p>
+align-items和align-self是在cross-axis方向上对齐元素。align-items是容器范围内使用的，align-self是子元素单独使用的。
+</p>
+<ul class="org-ul">
+<li>flex-start
+对齐顶部
+</li>
+<li>flex-end
+对齐底部
+</li>
+<li>center
+居中对齐
+</li>
+<li>stretch
+拉伸内容
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 实战</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+详见<a href="https://philipwalton.github.io/solved-by-flexbox/demos/grids/">solved-by-flexbox</a>
+</p>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 圣杯布局</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+圣杯布局由header, footer及3列组成，居中的是主内容，左右边栏是广告或者导航等辅助内容。一些要求
+</p>
+<ul class="org-ul">
+<li>两边的sidebar宽度固定，中间的内容是流式的
+</li>
+<li>中间的主内容栏应该最先出现
+</li>
+<li>左右边栏的主内容栏同高
+</li>
+<li>footer应该一直在页面下方
+</li>
+<li>css要尽量少
+</li>
+</ul>
+<p>
+结果：
+</p>
+<p data-height="268" data-theme-id="0" data-slug-hash="oxEWLy" data-default-tab="result" data-user="guangdane" class="codepen">See the Pen <a href="http://codepen.io/guangdane/pen/oxEWLy/">oxEWLy</a> by guang (<a href="http://codepen.io/guangdane">@guangdane</a>) on <a href="http://codepen.io">CodePen</a>.</p>
+<script async src="//assets.codepen.io/assets/embed/ei.js"></script>
+</div>
+</div>
+</div>

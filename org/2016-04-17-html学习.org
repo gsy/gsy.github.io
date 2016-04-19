@@ -1,0 +1,189 @@
+#+BEGIN_HTML
+---
+layout: post
+title: HTML基础
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+HTML Dom模型，tag & attributes
+
+* DOM
+  #+BEGIN_QUOTE
+  文档对象模型 (DOM) 是 HTML 和 XML 文档的编程接口。它给文档（结构树）提供了一个结构化的表述并且定义了一种方式—程序可以对结构树进行访问，以改变文档的结构，样式和内容。 DOM 提供了一种表述形式— 将文档作为一个结构化的节点组以及包含属性和方法的对象。从本质上说，它将 web 页面和脚本或编程语言连接起来了。
+  #+END_QUOTE
+  [[https://developer.mozilla.org/zh-CN/docs/Web/API/Document_Object_Model/Introduction][MDN的介绍]]
+  提供DOM统一接口的起因是：为了实现网页动画，需要将html，脚本，css结合起来，人们提出的dynamic html的概念。不同公司提出了不同的脚本和html文本交互的方法，于是需要出现一个对于脚本语言中立的接口。
+** 浏览器
+   为了渲染一个html页面，很多浏览器使用一种类似于DOM的内部模型。文本的节点组织成树形结构，称为DOM Tree，最上层的根节点称为"Document object"。
+
+** js
+   当页面被load进内存的时候，浏览器就创建了一个页面对应的DOM，js就可以操纵这个模型。
+   - 添加，修改和删除网页的元素和属性
+   - 改变页面的所有css属性
+   - 对于页面已有的所有事件作出回应
+   - 在页面内添加新的事件   
+* Display types
+  html元素会在浏览器中渲染，展示类型决定了浏览器将怎样渲染元素。css可以改变渲染的样式，但是每个tag有默认的展示行为，当没有css介入的时候，浏览器就使用默认的展示类型。有3种主要的display type。
+** Block
+   Block是块状的，从一个新行开始，从左到右能占用多大地方占用多大地方。Block基本的元素可以包含inline级别的元素或者其他block级元素。比如说 "p" 标签，包含了一整段文字，后续的 "p" 标签会新起一行。
+** Inline
+   Inline元素只能包含数据或者其他inline级元素。inline元素不需要从新的一行开始，只使用刚好能展示元素的地方。例子是 "a" 标签，链接内嵌在一行文字之中。
+** Inline-block
+   Inline-block元素跟它临近的元素同行，但是它可以向一个block一样调整整体的margin，padding和dimension。默认是inline-block的元素只有image和button。
+* HTML element
+  当html document被浏览器解析成DOM Tree时，document就可以看成是由很多HTML element节点组成的。html元素有各自属性和内容，可以包含其他html元素，并且带有语意，比如title元素表示的是document的标题。  
+* HTML tag
+  html元素由html tag表示，通常包含起始ag和结束tag，起始tag可以设置元素的属性。
+** Basic HTML
+   | Tag          | Description                              |
+   | <!DOCTYPE>   | Defines the document type                |
+   | <html>       | Defines an HTML document                 |
+   | <title>      | Defines a title for the document         |
+   | <body>       | Defines the document's body              |
+   | <h1> to <h6> | Defines HTML headings                    |
+   | <p>          | Defines a paragraph                      |
+   | <br>         | Inserts a single line break              |
+   | <hr>         | Defines a thematic change in the content |
+   | <!--...-->   | Defines a comment                        | 
+** Formatting
+   | Tag          | Description                                                                                         |
+   | <acronym>    | Not supported in HTML5. Use <abbr> instead.  Defines an acronym                                     |
+   | <abbr>       | Defines an abbreviation or an acronym                                                               |
+   | <address>    | Defines contact information for the author/owner of a document/article                              |
+   | <b>          | Defines bold text                                                                                   |
+   | <bdi>        | Isolates a part of text that might be formatted in a different direction from other text outside it |
+   | <bdo>        | Overrides the current text direction                                                                |
+   | <big>        | Not supported in HTML5. Use CSS instead. Defines big text                                           |
+   | <blockquote> | Defines a section that is quoted from another source                                                |
+   | <center>     | Not supported in HTML5. Use CSS instead. Defines centered text                                      |
+   | <cite>       | Defines the title of a work                                                                         |
+   | <code>       | Defines a piece of computer code                                                                    |
+   | <del>        | Defines text that has been deleted from a document                                                  |
+   | <dfn>        | Represents the defining instance of a term                                                          |
+   | <em>         | Defines emphasized text                                                                             |
+   | <font>       | Not supported in HTML5. Use CSS instead.Defines font, color, and size for text                      |
+   | <i>          | Defines a part of text in an alternate voice or mood                                                |
+   | <ins>        | Defines a text that has been inserted into a document                                               |
+   | <kbd>        | Defines keyboard input                                                                              |
+   | <mark>       | Defines marked/highlighted text                                                                     |
+   | <meter>      | Defines a scalar measurement within a known range (a gauge)                                         |
+   | <pre>        | Defines preformatted text                                                                           |
+   | <progress>   | Represents the progress of a task                                                                   |
+   | <q>          | Defines a short quotation                                                                           |
+   | <rp>         | Defines what to show in browsers that do not support ruby annotations                               |
+   | <rt>         | Defines an explanation/pronunciation of characters (for East Asian typography)                      |
+   | <ruby>       | Defines a ruby annotation (for East Asian typography)                                               |
+   | <s>          | Defines text that is no longer correct                                                              |
+   | <samp>       | Defines sample output from a computer program                                                       |
+   | <small>      | Defines smaller text                                                                                |
+   | <strike>     | Not supported in HTML5. Use <del> or <s> instead.Defines strikethrough text                         |
+   | <strong>     | Defines important text                                                                              |
+   | <sub>        | Defines subscripted text                                                                            |
+   | <sup>        | Defines superscripted text                                                                          |
+   | <time>       | Defines a date/time                                                                                 |
+   | <tt>         | Not supported in HTML5. Use CSS instead.Defines teletype text                                       |
+   | <u>          | Defines text that should be stylistically different from normal text                                |
+   | <var>        | Defines a variable                                                                                  |
+   | <wbr>        | Defines a possible line-break                                                                       | 
+** Forms and Input
+   | Tag        | Description                                                                      |
+   | <form>     | Defines an HTML form for user input                                              |
+   | <input>    | Defines an input control                                                         |
+   | <textarea> | Defines a multiline input control (text area)                                    |
+   | <button>   | Defines a clickable button                                                       |
+   | <select>   | Defines a drop-down list                                                         |
+   | <optgroup> | Defines a group of related options in a drop-down list                           |
+   | <option>   | Defines an option in a drop-down list                                            |
+   | <label>    | Defines a label for an                                     input         element |
+   | <fieldset> | Groups related elements in a form                                                |
+   | <legend>   | Defines a caption for a                                    fieldset      element |
+   | <datalist> | Specifies a list of pre-defined options for input controls                       |
+   | <keygen>   | Defines a key-pair generator field (for forms)                                   |
+   | <output>   | Defines the result of a calculation                                              |
+
+** Frames
+   | Tag        | Description                                                                              |
+   | <frame>    | Not supported in HTML5.Defines a window (a frame) in a frameset                          |
+   | <frameset> | Not supported in HTML5.Defines a set of frames                                           |
+   | <noframes> | Not supported in HTML5.Defines an alternate content for users that do not support frames |
+   | <iframe>   | Defines an inline frame                                                                  |
+
+** Images
+   | Tag          | Description                                                           |
+   | <img>        | Defines an image                                                      |
+   | <map>        | Defines a client-side image-map                                       |
+   | <area>       | Defines an area inside an image-map                                   |
+   | <canvas>     | Used to draw graphics, on the fly, via scripting (usually JavaScript) |
+   | <figcaption> | Defines a caption for a <figure>  element                             |
+   | <figure>     | Specifies self-contained content                                      |
+** Audio / Video   
+   | Tag      | Description                                                               |
+   | <audio>  | Defines sound content                                                     |
+   | <source> | Defines multiple media resources for media elements (<video> and <audio>) |
+   | <track>  | Defines text tracks for media elements (<video> and <audio>)              |
+   | <video>  | Defines a video or movie                                                  | 
+** Links
+   | Tag    | Description                                                                                              |
+   | <a>    | Defines a hyperlink                                                                                      |
+   | <link> | Defines the relationship between a document and an external resource (most used to link to style sheets) |
+   | <nav>  | Defines navigation links                                                                                 |
+** Lists
+   | Tag        | Description                                                            |
+   | <ul>       | Defines an unordered list                                              |
+   | <ol>       | Defines an ordered list                                                |
+   | <li>       | Defines a list item                                                    |
+   | <dir>      | Not supported in HTML5. Use <ul>  instead.Defines a directory list     |
+   | <dl>       | Defines a description list                                             |
+   | <dt>       | Defines a term/name in a description list                              |
+   | <dd>       | Defines a description of a term/name in a description list             |
+   | <menu>     | Defines a list/menu of commands                                        |
+   | <menuitem> | Defines a command/menu item that the user can invoke from a popup menu | 
+
+** Tables
+   | Tag        | Description                                                              |
+   | <table>    | Defines a table                                                          |
+   | <caption>  | Defines a table caption                                                  |
+   | <th>       | Defines a header cell in a table                                         |
+   | <tr>       | Defines a row in a table                                                 |
+   | <td>       | Defines a cell in a table                                                |
+   | <thead>    | Groups the header content in a table                                     |
+   | <tbody>    | Groups the body content in a table                                       |
+   | <tfoot>    | Groups the footer content in a table                                     |
+   | <col>      | Specifies column properties for each column within a <colgroup>  element |
+   | <colgroup> | Specifies a group of one or more columns in a table for formatting       |
+** Styles and Semantics
+   | Tag       | Description                                               |
+   | <style>   | Defines style information for a document                  |
+   | <div>     | Defines a section in a document                           |
+   | <span>    | Defines a section in a document                           |
+   | <header>  | Defines a header for a document or section                |
+   | <footer>  | Defines a footer for a document or section                |
+   | <main>    | Specifies the main content of a document                  |
+   | <section> | Defines a section in a document                           |
+   | <article> | Defines an article                                        |
+   | <aside>   | Defines content aside from the page content               |
+   | <details> | Defines additional details that the user can view or hide |
+   | <dialog>  | Defines a dialog box or window                            |
+   | <summary> | Defines a visible heading for a <details>  element        |
+** Meta Info
+   | Tag        | Description                                                                                                   |
+   | <head>     | Defines information about the document                                                                        |
+   | <meta>     | Defines metadata about an HTML document                                                                       |
+   | <base>     | Specifies the base URL/target for all relative URLs in a document                                             |
+   | <basefont> | Not supported in HTML5. Use CSS instead. Specifies a default color, size, and font for all text in a document |
+
+** Programming
+   | Tag        | Description                                                                         |
+   | <script>   | Defines a client-side script                                                        |
+   | <noscript> | Defines an alternate content for users that do not support client-side scripts      |
+   | <applet>   | Not supported in HTML5. Use <embed> or <object>  instead.Defines an embedded applet |
+   | <embed>    | Defines a container for an external (non-HTML) application                          |
+   | <object>   | Defines an embedded object                                                          |
+   | <param>    | Defines a parameter for an object                                                   |
+
+
+* HTML attribute
+  - 给html元素提供额外的信息
+  - 一个html元素可以有很多个attribute
+  - 总是在起始tag里面设定
+  - tag的形式是name="value"，name尽量使用小写，value尽量qoute起来，可以使用""或者''  

@@ -1,0 +1,314 @@
+#+BEGIN_HTML
+---
+layout: post
+title: mysql抓包分析
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+#+OPTIONS: ^:nil
+除了mysql的日志之外，可以通过抓包来观察mysql server的行为。这篇文章记录的是使用tcpdump来捕获发送到mysql server及mysql server发出的包，然后使用pt-query-digest工具分析数据。
+
+* 1. tcpdump
+** 1.1 什么是tcpdump    
+   #+BEGIN_QUOTE
+   tcpdump - dump traffic on a network
+  #+END_QUOTE
+** 1.2 tcpdump怎么用
+   Tcpdump可以根据给出的bool表达式的值，抓取一个网络接口的内容并且打印在标准输出上。如果需要存储抓取的包数据以便分析，可以通过-w选项指定数据保存到数据保存的文；-r选项使得tcpdump从文件中读取数据包内容而不是从网络接口抓取。Tcpdump默认情况下一直抓取数据包，直到被SIGINT信号（通常情况下是control-C发出）或者SIGTERM信号（通常情况下是kill命令发出）中断。
+*** 1.2.1 常用参数
+    - -c count
+      当接收到count个数据包时退出
+    - -i interface
+      指定监听的网络接口。值为any可以监听所有网络接口。
+    - -s
+      抓取数据包的最大长度，当大于这个长度时，数据包会被截断。设置成0会使用默认值65535，即包的最大长度是65535字节。
+    - -l 
+      使得输出的结果是line buffer的。
+    - -nn
+      不做地址到名字的转换（主机地址，端口号等）
+    - q
+      打印少点协议相关的信息，输出更简洁      
+    - -tttt
+      打印时间戳      
+    - -w
+      指定捕获数据包写入的文件。值为-时写到标准输出上。
+    - -x
+      除了打印数据包的包头之外，还打印出数据包的包内容。打印出来的是16进制数据。
+    - dst
+      指定目标的host和port
+    - src
+      指定源的host和port
+*** 1.2.2 逻辑运算
+    tcpdump提供了and，or和not这三个逻辑运算
+** 1.3 实战
+   - 在server上监听3306端口，捕获数据包
+   #+BEGIN_SRC sh     
+     tcpdump -i wlan0 -s 0 -l -w - dst port 3306
+  #+END_SRC
+
+* 2.pt-query-digest
+** 2.1 pt-query-digest是什么
+   #+BEGIN_QUOTE
+   pt-query-digest - Analyze MySQL queries from logs, processlist, and tcpdump
+   #+END_QUOTE
+   pt-query-digest是percona工具集的一员，通过mysql的slow log, general log, binary log等日志文件来分析mysql查询。也可以分析server当前的processlist的数据及tcpdump抓取的mysql协议数据。查询数据默认情况下以fingerprint为依据分组，按查询时间递减排序（所以慢查询在最先）。
+   - 生成slow.log的报告
+   #+BEGIN_SRC sh
+     pt-query-digest slow.log
+   #+END_SRC
+   - 分析host1上processlist中最慢的查询
+     #+BEGIN_SRC sh
+       pt-query-digest --processlist h=host1
+     #+END_SRC
+   - 使用tcpdump捕获mysql协议数据，生成慢查询报告   
+     #+BEGIN_SRC sh
+    tcpdump -s 65535 -x -nn -q -tttt -i any -c 1000 port 3306 > mysql.tcp.txt
+
+    pt-query-digest --type tcpdump mysql.tcp.txt
+  #+END_SRC
+   - 保存slow.log到host2以便以后的分析
+     #+BEGIN_SRC sh
+       pt-query-digest --review h=host2 --no-report slow.log
+     #+END_SRC
+*** 2.1.1 fingerprint
+    fingerprint是将sql字符串进行简化后做运算得到的一个16进制值，这个值能表示这类sql的特征。比如说有两个sql：
+    #+BEGIN_SRC sql
+      SELECT name, password FROM user WHERE id='12823';
+      select name,   password from user
+         where id=5;
+    #+END_SRC
+    简化后的sql的样子是：
+    #+BEGIN_SRC sql
+    select name, password from user where id=?
+    #+END_SRC
+    可以看出，跟sql解析无关的大小写，多余的空格，具体的参数等都被去掉了，留下的是对sql执行有影响的部分，所以fingerprint能表示相似sql的特征。fingerprint是生成的报告中的query_id的值。
+    
+    
+** 2.2 pt-query-digest的分析结果     
+   先看下整个分析结果：
+   #+BEGIN_QUOTE
+# 320ms user time, 20ms system time, 31.88M rss, 104.48M vsz
+# Current date: Tue Apr  5 17:21:01 2016
+# Hostname: guang-Aspire-4750
+# Files: mysql.tcp.txt
+# Overall: 2 total, 2 unique, 0.16 QPS, 0.00x concurrency ________________
+# Time range: 2016-04-05 17:20:34.240629 to 17:20:46.994441
+# Attribute          total     min     max     avg     95%  stddev  median
+# ============     ======= ======= ======= ======= ======= ======= =======
+# Exec time            5ms   520us     4ms     2ms     4ms     3ms     2ms
+# Rows affecte           1       0       1    0.50       1    0.71    0.50
+# Query size           179      38     141   89.50     141   72.83   89.50
+# Warning coun           0       0       0       0       0       0       0
+# Boolean:
+# No index use  50% yes,  50% no
+
+# Profile
+# Rank Query ID           Response time Calls R/Call V/M   Item
+# ==== ================== ============= ===== ====== ===== ============
+#    1 0x08679E2627B9F211  0.0043 89.2%     1 0.0043  0.00 INSERT tasks
+#    2 0xAAB7248127A0A916  0.0005 10.8%     1 0.0005  0.00 SELECT tasks
+
+# Query 1: 0 QPS, 0x concurrency, ID 0x08679E2627B9F211 at byte 0 ________
+# This item is included in the report because it matches --limit.
+# Scores: V/M = 0.00
+# Time range: all events occurred at 2016-04-05 17:20:34.240629
+# Attribute    pct   total     min     max     avg     95%  stddev  median
+# ============ === ======= ======= ======= ======= ======= ======= =======
+# Count         50       1
+# Exec time     89     4ms     4ms     4ms     4ms     4ms       0     4ms
+# Rows affecte 100       1       1       1       1       1       0       1
+# Query size    78     141     141     141     141     141       0     141
+# Warning coun   0       0       0       0       0       0       0       0
+# String:
+# Hosts        192.168.0.100
+# Query_time distribution
+#   1us
+#  10us
+# 100us
+#   1ms  ################################################################
+#  10ms
+# 100ms
+#    1s
+#  10s+
+# Tables
+#    SHOW TABLE STATUS LIKE 'tasks'\G
+#    SHOW CREATE TABLE `tasks`\G
+insert into tasks (`subject`, `start_date`, `end_date`, `description`) values ("test data3", "2014-04-01", "2015-08-01", "test insert data.")\G
+
+# Query 2: 0 QPS, 0x concurrency, ID 0xAAB7248127A0A916 at byte 1231 _____
+# This item is included in the report because it matches --limit.
+# Scores: V/M = 0.00
+# Time range: all events occurred at 2016-04-05 17:20:46.994441
+# Attribute    pct   total     min     max     avg     95%  stddev  median
+# ============ === ======= ======= ======= ======= ======= ======= =======
+# Count         50       1
+# Exec time     10   520us   520us   520us   520us   520us       0   520us
+# Rows affecte   0       0       0       0       0       0       0       0
+# Query size    21      38      38      38      38      38       0      38
+# Warning coun   0       0       0       0       0       0       0       0
+# Boolean:
+# No index use 100% yes,   0% no
+# String:
+# Hosts        192.168.0.100
+# Query_time distribution
+#   1us
+#  10us
+# 100us  ################################################################
+#   1ms
+#  10ms
+# 100ms
+#    1s
+#  10s+
+# Tables
+#    SHOW TABLE STATUS LIKE 'tasks'\G
+#    SHOW CREATE TABLE `tasks`\G
+# EXPLAIN /*!50100 PARTITIONS*/
+select start_date, end_date from tasks\G
+   #+END_QUOTE
+   整个报告包括3个部分：
+   - 1.总体的运行时间和查询次数
+   - 2.查询的性能报告汇总
+   - 3.每个查询的详细报告
+*** 2.2.1 Overall
+    总的运行时间和查询次数，执行时间和影响行数，查询数据包的大小和warning的个数    
+*** 2.2.2 Profile
+    查询的性能汇总结果。包含以下列
+    | 名称          | 含义                                    |
+    |---------------+-----------------------------------------|
+    | Rank          | 在所有查询里面的排名                    |
+    | Query ID      | 查询的fingerprint，作为id来标识这个查询 |
+    | Response time | 总的相应时间及在所有查询时间中占的比例  |
+    | Calls         | 执行次数                                |
+    | R/Call        | 查询的平均执行时间                      |
+    | V/M           | 响应时间的方差                          |
+    | Item          | 精炼的查询表示                          |
+    
+*** 2.2.3 each query
+    第三部分是各个查询的测量结果。包含以下列：
+    | 名称          | 含义             |
+    |---------------+------------------|
+    | Count         | 执行次数         |
+    | Exec time     | 执行时间         |
+    | Rows affecte  | 影响函数         |
+    | Query size    | 查询数据包的大小 |
+    | Warning count | 警告个数         |
+    接下来是查询的时间分布图和具体的sql。
+
+    
+    
+   
+  
+  
+
+** 2.3 从分析结果可以得到什么
+   - 2.3.1 最费时的查询对应的sql语句
+     思路是默认情况下pt-query-digest生成的报告是根据查询执行时间按降序排列的，所以profile中rank为1对应的query_id就是我们要找的最费时的sql。
+     #+BEGIN_SRC python
+       #!/usr/bin/env python
+       # encoding: utf-8
+       import re
+
+       profile_pattern = re.compile("^# Profile$")
+       sql_pattern = re.compile("^select|update|delete|insert|set|commit|rollback|create|drop|alter", re.IGNORECASE)
+
+       def read_file(path):
+           """
+           读取文件, 返回行数据的generator
+           """
+           with open(path) as f:
+               while True:
+                   line = f.readline()
+                   yield line
+                   if not line:
+                       break
+
+       def match(pattern, text):
+           return pattern.match(text) is not None;
+
+       def get_profile(lines):
+           """
+           获取总体的profile信息
+           """
+           raw_data = []
+           for line in lines:
+               if match(profile_pattern, line):
+                   header_line = lines.next()
+                   seperator_line = lines.next()            
+                   for line in lines:
+                       if line == "\n":
+                           break
+                       raw_data.append(line)
+                   break
+
+           profiles = []
+           for line in raw_data:
+               attributs = line.split()
+               profile_object = {}
+               profile_object['rank'] = attributs[1]
+               profile_object['query_id'] = attributs[2]
+               profile_object['response_time_value'] = attributs[3]
+               profile_object['response_time_percent'] = attributs[4]
+               profile_object['calls'] = attributs[5]
+               profile_object['time_per_call'] = attributs[6]
+               profile_object['v_m'] = attributs[7]
+               profile_object['item'] = ' '.join(attributs[8:])
+               profiles.append(profile_object)
+
+           return profiles
+
+       def get_slowest_query_id(profiles):
+           """
+           获取最慢查询的id
+           """
+           for profile in profiles:
+               if profile['rank'] == '1':
+                   return profile['query_id']
+
+       def get_query_sql(query_id, lines):
+           """
+           根据id查找对应的sql语句
+           """
+           query_pattern = re.compile("ID {}".format(query_id))
+           for line in lines:
+               if query_pattern.search(line) is not None:
+                   for line in lines:
+                       if match(sql_pattern, line):
+                           return line
+
+       def slowest(path):
+           """
+           将所有步骤串联起来
+           """
+           lines = read_file(path)
+           profiles = get_profile(lines)
+           query_id = get_slowest_query_id(profiles)
+           return get_query_sql(query_id, lines)    
+           
+
+       if __name__ == "__main__":
+           sql = slowest("result.txt")
+           print sql
+     #+END_SRC
+     
+   - 2.3.2 查询次数最多的查询对应的sql语句
+     获取profile参数的过程和上面的脚本一样。不同的是需要获取查询次数最多的query_id
+     #+BEGIN_SRC python
+       def get_most_call_query_id(profiles):
+           """
+           获取查询次数最多的id
+           """
+
+           if not profiles:
+               return ""
+           
+           copy = sorted(profiles, key=lambda profile: profile['calls'])
+           return copy[0]['query_id']
+
+       def most_call(path):
+           lines = read_file(path)
+           profiles = get_profile(lines)
+           query_id = get_most_call_query_id(profiles)
+           return get_query_sql(query_id, lines)            
+     #+END_SRC
+
+

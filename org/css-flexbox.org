@@ -1,0 +1,224 @@
+长久以来，CSS缺少合适的布局机制，直到 [[https://www.w3.org/TR/css-flexbox-1/][Flexbox ]]出现。
+
+* Flex Container & Flex Items
+  布局很多时候追求的是规则得摆放元素，就像看不见的线框定了一个范围，元素就放入其中，如果框定的范围跟元素的大小不一致时，元素能自动的缩放。这就是Flex Container想要达到的效果。
+  看一下gtk+的 [[https://developer.gnome.org/gtk3/stable/LayoutContainers.html][layout]] ，多么直观，多么丰富的工具库，就像家里开了个武器库的感觉。web component组件标准化是不是来得太慢了？
+  Flex Container是一个排版的框架，在其中的内容称为Flex Item。
+** Flex Container布局
+  flex container有两个轴，可以支持在两个方向上布局元素。
+  [[]]
+  - 使用main axis
+     水平排列
+  - 使用cross axis
+     垂直排列
+  - 联合main axis和cross axis
+     流排列，如果main axis到头了，沿着cross axis拓展，反之亦然。
+*** flex-direction
+    flex item在flex container中摆放的顺序
+    - row
+      #+BEGIN_HTML
+        <style type="text/css">
+
+        .container {
+          padding: 0;
+          margin: 0;
+          width: 300px;
+          background: black;
+          border-radius: 10px;
+        }
+
+        .flex-row {
+          display: flex;
+          flex-direction: row;
+        }
+
+        .item {
+          background: rgba(80, 80, 80, 0.9);
+          border-radius: 5px;
+          padding: 5px;
+          margin: 5px;
+          font-size: 30px;
+          width: 80px;
+          color: white;
+          text-align: center;
+        }
+        </style>
+        <div class="container flex-row">
+          <div class="item">1</div>
+          <div class="item">2</div>
+          <div class="item">3</div>
+        </div>
+      #+END_HTML
+    - row-reverse
+      #+BEGIN_HTML
+        <style type="text/css">
+        .flex-row-reverse {
+          display: flex;
+          flex-direction: row-reverse;
+        }  
+        </style>
+        <div class="container flex-row-reverse">
+          <div class="item">1</div>
+          <div class="item">2</div>
+          <div class="item">3</div>
+        </div>
+      #+END_HTML
+    - column
+      #+BEGIN_HTML
+        <style type="text/css">
+          .flex-column {
+            display: flex;
+            flex-direction: column;
+          }  
+          </style>
+          <div class="container flex-column">
+            <div class="item" style="width:auto;">1</div>
+            <div class="item" style="width:auto;">2</div>
+            <div class="item" style="width:auto;">3</div>
+          </div>
+      #+END_HTML
+    - column-reverse
+      #+BEGIN_HTML
+        <style type="text/css">
+          .flex-column-reverse {
+            display: flex;
+            flex-direction: column-reverse;
+          }  
+          </style>
+          <div class="container flex-column-reverse">
+            <div class="item" style="width:auto;">1</div>
+            <div class="item" style="width:auto;">2</div>
+            <div class="item" style="width:auto;">3</div>
+          </div>
+      #+END_HTML
+*** flex-wrap
+    flex-wrap控制着flex container是单行的还是多行的。如果是多行的话，cross-axis的方向决定了新的一行将怎样加入进来
+    - nowrap
+      flex container是单行的
+      #+BEGIN_HTML
+         <div class="container flex-row" style="flex-wrap:no-wrap;">
+          <div class="item">1</div>
+          <div class="item">2</div>
+          <div class="item">3</div>
+          <div class="item">4</div>
+          <div class="item">5</div>
+          <div class="item">6</div>
+          <div class="item">7</div>
+          <div class="item">8</div>
+        </div>
+      #+END_HTML
+    - wrap
+      flex container是多行的
+      #+BEGIN_HTML
+        <div class="container flex-row" style="flex-wrap:wrap;">
+          <div class="item">1</div>
+          <div class="item">2</div>
+          <div class="item">3</div>
+          <div class="item">4</div>
+          <div class="item">5</div>
+          <div class="item">6</div>
+          <div class="item">7</div>
+          <div class="item">8</div>
+        </div>
+      #+END_HTML
+
+    - wrap-revserse
+      #+BEGIN_HTML
+         <div class="container flex-row" style="flex-wrap:wrap-reverse;">
+          <div class="item">1</div>
+          <div class="item">2</div>
+          <div class="item">3</div>
+          <div class="item">4</div>
+          <div class="item">5</div>
+          <div class="item">6</div>
+          <div class="item">7</div>
+          <div class="item">8</div>
+        </div>
+      #+END_HTML
+      
+      
+   
+  
+
+
+
+  
+  
+  
+
+*** flex-flow
+    flex-flow是flex-direction和flex-wrap的简写。在同一个语句里面指定flex-direction和flex-wrap。
+
+
+** Flex Lines
+   flex container内的布局规则可以看成有flex lines构成的，元素被放置在flex lines中，同一个flex line里面的元素可以做对齐操作。多行flex container中，当flex item被分配到不同的行时，不同行的排版是相互独立的。'justify-content'和'align-self'属性对每行重新计算的。在多行flex container中，cross size(可以看成列高)是包含每行内容的最小高度，行里面的内容对齐由'align-content'属性指定。在单行flex container中，'align-content'没有作用。
+   可以在flex item中指定flex: auto属性使得flex item占满某行。
+   #+BEGIN_HTML
+     <div class="container" style="display: flex flex-flow: row wrap;">
+       <div class="item" style="flex:auto">1</div>
+       <div class="item" style="flex:auto">2</div>
+       <div class="item" style="flex:auto">3</div>
+       <div class="item" style="flex:auto">4</div>  
+     </div>
+   #+END_HTML
+
+** 缩放能力-Flexibility
+   'flex'属性指定了当容器内空间怎样分配。
+   - flex grow factor
+     当空间富裕时，flex item将有多大的权重因数去获取多余的空间。权重跟使用的多余空间是成比例的。默认是1
+   - flex shrink factor
+     当空间不够时，flex item将以多大的权重因数将自己缩小，默认是1
+   - flex basis
+     没有缩放前元素占用的空间大小。设置成auto会使用能包围元素内容的大小。
+** 对齐
+*** 使用'auto' margins
+    flex item指定auto margin的效果
+    - auto margin不算在flex bases和flexible length的计算中
+    - 多余的空间会优先分配给auto margin，在'justify-content'和'align-self'之前
+    - overflow boxes忽略auto margin
+*** 使用'justify-content'对齐
+    - flex-start
+      从main-start开始排列子元素
+    - flex-end
+      从main-end开始插入元素，之前插入的元素往main-start方向移动
+    - center
+      插入元素后居中对齐，元素组到main-start和main-end之间的距离是相等的
+    - space between
+      平均分布。头尾元素没有多余空间
+    - space around
+      平均分布。
+    - 例子
+      #+BEGIN_HTML
+        <p data-height="244" data-theme-id="0" data-slug-hash="bpLqMz" data-default-tab="result" data-user="guangdane" class="codepen">See the Pen <a href="http://codepen.io/guangdane/pen/bpLqMz/">bpLqMz</a> by guang (<a href="http://codepen.io/guangdane">@guangdane</a>) on <a href="http://codepen.io">CodePen</a>.</p>
+        <script async src="//assets.codepen.io/assets/embed/ei.js"></script>
+      #+END_HTML
+      
+      
+   
+   
+*** 使用'align-items'和'align-self'
+    align-items和align-self是在cross-axis方向上对齐元素。align-items是容器范围内使用的，align-self是子元素单独使用的。
+    - flex-start
+      对齐顶部
+    - flex-end
+      对齐底部
+    - center
+      居中对齐
+    - stretch
+      拉伸内容
+      
+
+* 实战
+  详见[[https://philipwalton.github.io/solved-by-flexbox/demos/grids/][solved-by-flexbox]]
+** 圣杯布局
+   圣杯布局由header, footer及3列组成，居中的是主内容，左右边栏是广告或者导航等辅助内容。一些要求
+   - 两边的sidebar宽度固定，中间的内容是流式的
+   - 中间的主内容栏应该最先出现
+   - 左右边栏的主内容栏同高
+   - footer应该一直在页面下方
+   - css要尽量少
+   结果：
+   #+BEGIN_HTML
+     <p data-height="268" data-theme-id="0" data-slug-hash="oxEWLy" data-default-tab="result" data-user="guangdane" class="codepen">See the Pen <a href="http://codepen.io/guangdane/pen/oxEWLy/">oxEWLy</a> by guang (<a href="http://codepen.io/guangdane">@guangdane</a>) on <a href="http://codepen.io">CodePen</a>.</p>
+     <script async src="//assets.codepen.io/assets/embed/ei.js"></script>
+   #+END_HTML
