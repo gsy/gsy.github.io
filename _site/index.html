@@ -6,6 +6,7 @@
     <!-- link to main stylesheet -->
     <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 </head>
 
     
@@ -43,6 +44,149 @@
 	
 		
 	<div class="posts">
+    
+    <article class="post">     
+	<h1 class="title">
+	    <a href="/2017/12/22/emacs-%E7%94%BB%E5%9B%BE.html" title="emacs 使用 tikz 画图">emacs 使用 tikz 画图</a>
+	</h1>
+	<h2 class="date">
+	    <span>Dec 22, 2017</span>
+	</h2>
+	
+	<div class="entry">
+	    <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 图片生成</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>使用 org-mode babel，import latex 的 tikz 包，编写 LaTeX 代码并编译生成 pdf 文件
+</li>
+<li>png，svg 等格式的文件是通过其他的转换工具，例如 imagemagick 的 convert 命令，将 pdf 文件转换得到的
+</li>
+</ul>
+</div>
+</div>
+
+
+	</div>
+	<a href="/2017/12/22/emacs-%E7%94%BB%E5%9B%BE.html" class="read-more">阅读更多</a>
+
+    </article>
+    
+    <article class="post">     
+	<h1 class="title">
+	    <a href="/2017/12/21/spanner%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB.html" title="spanner 论文阅读">spanner 论文阅读</a>
+	</h1>
+	<h2 class="date">
+	    <span>Dec 21, 2017</span>
+	</h2>
+	
+	<div class="entry">
+	    <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> spanner 是什么</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+google 开发的一个数据库。用于支持 scheme 在线变更，避免 msyql 的手工 sharding 及支持自动 failover。feature:
+</p>
+<ul class="org-ul">
+<li>可拓展
+</li>
+<li>多版本
+</li>
+<li>全球分布式
+</li>
+<li>同步复制
+</li>
+</ul>
+</div>
+</div>
+
+
+	</div>
+	<a href="/2017/12/21/spanner%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB.html" class="read-more">阅读更多</a>
+
+    </article>
+    
+    <article class="post">     
+	<h1 class="title">
+	    <a href="/2017/12/21/6.824-distributed-transactions.html" title="6.824 - Distributed Transactions">6.824 - Distributed Transactions</a>
+	</h1>
+	<h2 class="date">
+	    <span>Dec 21, 2017</span>
+	</h2>
+	
+	<div class="entry">
+	    <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Topics</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>distributed transactions = distributed commit + concurrency control
+</li>
+<li>two-phase commit
+<ol class="org-ol">
+<li>prepare
+</li>
+<li>commit
+</li>
+</ol>
+</li>
+</ul>
+</div>
+</div>
+
+
+	</div>
+	<a href="/2017/12/21/6.824-distributed-transactions.html" class="read-more">阅读更多</a>
+
+    </article>
+    
+    <article class="post">     
+	<h1 class="title">
+	    <a href="/2016/04/21/wsgi.html" title="WSGI">WSGI</a>
+	</h1>
+	<h2 class="date">
+	    <span>Apr 21, 2016</span>
+	</h2>
+	
+	<div class="entry">
+	    <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> wsgi是什么</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+WSGI是Web Server Gateway Interface的缩写。这个接口在web服务器和web应用程序或者框架之间使用。
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> server/gateway</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+调用application提供的一个callable对象.
+</p>
+<div class="org-src-container">
+
+
+	</div>
+	<a href="/2016/04/21/wsgi.html" class="read-more">阅读更多</a>
+
+    </article>
+    
+    <article class="post">     
+	<h1 class="title">
+	    <a href="/2016/04/21/mergesort.html" title="归并排序算法 & winner tree">归并排序算法 & winner tree</a>
+	</h1>
+	<h2 class="date">
+	    <span>Apr 21, 2016</span>
+	</h2>
+	
+	<div class="entry">
+	    <p>
+归并排序是通常作为外部排序使用，如果排序文件很大，不能装载到内存里面排序，就分割成小文件，先将小文件排序，最后进行归并操作。归并排序是典型的分治算法，时间复杂度是O(nlogn)。
+</p>
+
+
+	</div>
+	<a href="/2016/04/21/mergesort.html" class="read-more">阅读更多</a>
+
+    </article>
     
     <article class="post">     
 	<h1 class="title">
