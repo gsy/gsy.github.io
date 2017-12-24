@@ -1,0 +1,78 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Hash</a>
+<ul>
+<li><a href="#sec-1-1">1.1. hash的使用场景限制</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. B-Tree</a>
+<ul>
+<li><a href="#sec-2-1">2.1. B-Tree作为索引的优点</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<p>
+Hash跟B-Tree有什么区别？为什么数据库选择B-Tree作为索引的主要实现，而不选择hash table
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Hash</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+hash的查找时间复杂度是O(1)，效率非常高。但是也有缺点。
+</p>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> hash的使用场景限制</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>hash不能用于范围查找。hash<sub>code不一定保持原来的顺序，所以不能表示大小关系</sub>
+</li>
+<li>hash不能用来排序
+</li>
+<li>hash索引不能支持组合索引
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> B-Tree</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+B-Tree是二叉查找树的推广，多路查找树。Donald Knuth对B-Tree的定义：
+</p>
+<blockquote>
+<p>
+1.Every node has at most m children.
+2.Every non-leaf node (except root) has at least ⌈m/2⌉ children.
+3.The root has at least two children if it is not a leaf node.
+4.A non-leaf node with k children contains k−1 keys.
+5.All leaves appear in the same level
+</p>
+</blockquote>
+<p>
+B-Tree要求非叶子节点至少半满，两个半满的非叶子节点可以合并成一个全满的节点，一个全满的节点可以分裂成两个半满的节点。
+</p>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> B-Tree作为索引的优点</h3>
+<div class="outline-text-3" id="text-2-1">
+<ol class="org-ol">
+<li>keys是有序的，所以可以顺序遍历
+</li>
+<li>树形结构保证读磁盘的次数很少
+</li>
+<li>不是全满的节点支持快速插入和删除
+</li>
+<li>使用递归算法保证索引平衡
+</li>
+</ol>
+</div>
+</div>
+</div>

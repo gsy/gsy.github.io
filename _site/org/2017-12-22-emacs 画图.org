@@ -1,0 +1,240 @@
+#+BEGIN_HTML
+---
+layout: post
+title: emacs 使用 tikz 画图
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+#+OPTIONS: tex:t
+#+STARTUP: latexpreview
+
+* 图片生成
+  - 使用 org-mode babel，import latex 的 tikz 包，编写 LaTeX 代码并编译生成 pdf 文件
+  - png，svg 等格式的文件是通过其他的转换工具，例如 imagemagick 的 convert 命令，将 pdf 文件转换得到的
+
+* emacs 配置篇
+  - mac 安装 macTex
+  - 添加 LaTeX 二进制程序的路径到系统 PATH。mac 上的一个例子：
+    #+BEGIN_SRC sh
+      export PATH="$PATH:/Library/TeX/texbin"
+    #+END_SRC
+  - emacs 配置文件里面添加 latex 路径
+    #+BEGIN_SRC emacs-lisp
+      (setenv "PATH" (concat "/Library/TeX/texbin" (getenv "PATH")))
+      (setq exec-path (append '("/Library/TeX/texbin") exec-path))
+     #+END_SRC
+  - 安装 imagemagick，用于生成 png
+    #+BEGIN_SRC sh
+      brew install imagemagick
+    #+END_SRC
+  - 安装 AUCTex, 配置
+    #+BEGIN_SRC emacs-lisp
+      (setq TeX-auto-save t)
+      (setq TeX-parse-self t)
+      (setq-default TeX-master nil)
+      (add-hook 'LaTeX-mode-hook 'auto-fill-mode)
+      (add-hook 'LaTeX-mode-hook 'flyspell-mode)
+      (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+      (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+      (setq reftex-plug-into-AUCTeX t)
+      (setq TeX-PDF-mode t)
+      (setq org-latex-create-formula-image-program 'imagemagick) ;使用 imagemagick 来生成图片
+      (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+      (setq org-confirm-babel-evaluate nil)   ;不用每次确认
+    #+END_SRC
+
+* org-mode babel篇
+  org-mode 是 emacs 的一种纯文本模式，可以用来干一件大事：文学编程。背后的思路是，文本中嵌入代码，代码是可以执行的，执行的结果反过来有可以放到文档的其他地方。emacs 的 code block 由 babel 管理，babel 就是那个巴别塔的神话故事，org-mode 的 babel 让不同的语言能相互沟通。
+  - babel 配置例子
+    #+BEGIN_SRC emacs-lisp
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((emacs-lisp . nil)
+         (R . t)))
+    #+END_SRC
+
+* tikz 代码篇
+** 命令模板
+   - Basic path: \drawing-command [options] path-specification;
+   - path-specification: (coordinate) path-component (coordinate);
+     - (coordinate) (coordinate): 定位参照点 current position 从第一个坐标移动到第二个坐标
+     - (coordinate) - (coordinate): 从第一个坐标画一条线到第二个坐标
+     - (coordinate) to[options] (coordinate): 从第一个坐标画一个路径到各个坐标，中间的路径可以很复杂
+     - (coordinate) circle[options]: 以 coordinate 为原点画个圆
+     - (coordinate) arc[options]: 以 coordinate 为起点画个弧形
+     - (coordinate) node[options] {text}: 在某个坐标画一个 node 节点
+
+** 基本命令
+   - \path: 最基本的命令，构建线条轮廓，感觉像是用铅笔打底。底下的命令都是 \path 命令的简化形式
+   - \draw: 构建并且画一个线条
+   - \fill: 填充颜色
+   - \filldraw: 填充颜色并且画出外边框
+   - \shade: 线条轮廓加上阴影
+   - \shadedraw: 加阴影，画出外边框
+   - \coordinate: 坐标
+   - \node: 构建节点
+
+** 坐标定位
+   - (<x>,<y>): 直角坐标系定位
+   - (<$\theta$, r>): 极坐标定位
+   - +<坐标系统>: 相对于上一个位置的相对定位，但不更新相对定位的参照点
+   - ++<坐标系统>: 相对于上一个位置的相对定位，更新相对定位的参照点为当前坐标
+
+** 例子
+*** 简单的 path
+    #+HEADER: :file path1.png :imagemagick yes :exports code
+    #+HEADER: :results output silent
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \usepackage{tikz}
+      \begin{tikzpicture}
+        \draw (1,0) -- (0,0) -- (0,1);
+      \end{tikzpicture}
+    #+END_SRC
+    #+BEGIN_HTML
+      <img alt="line.png" src="/assets/img/path1.png"/>
+    #+END_HTML
+
+*** 换坐标
+    #+HEADER: :file path2.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \begin{tikzpicture}
+        \draw (0,0) -- (2,0) (0,1) -- (2,1);
+      \end{tikzpicture}
+    #+END_SRC
+    #+BEGIN_HTML
+    <img alt="line.png" src="/assets/img/path2.png"/>
+    #+END_HTML
+*** 设置路径
+    #+HEADER: :file path3.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \begin{tikzpicture}
+        \draw (0,0) to (3,2);
+        \draw (0,0) to[out=90,in=180] (3,2);
+        \draw (0,0) to[bend right] (3,2);
+      \end{tikzpicture}
+    #+END_SRC
+    #+BEGIN_HTML
+    <img alt="line.png" src="/assets/img/path3.png"/>
+    #+END_HTML
+*** 矩形
+    #+HEADER: :file path4.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \begin{tikzpicture}
+        \draw (3, 1) rectangle (5,-1);
+        \shade[top color=yellow, bottom color=black] (0,0) rectangle (2,-1);
+        \filldraw[fill=green!20!white, draw=green!40!black] (0,0) rectangle (2,1);
+      \end{tikzpicture}
+    #+END_SRC
+    #+BEGIN_HTML
+    <img alt="line.png" src="/assets/img/path4.png"/>
+    #+END_HTML
+*** 圆形
+    #+HEADER: :file path5.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \begin{tikzpicture}
+        \draw (0,0) circle [radius=1.5];
+      \end{tikzpicture}
+    #+END_SRC
+    #+BEGIN_HTML
+    <img alt="line.png" src="/assets/img/path5.png"/>
+    #+END_HTML
+*** 弧形
+    #+HEADER: :file path6.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \begin{tikzpicture}
+        \draw (0,0) arc (0:270:8mm);
+        \draw (0,0) arc (0:315:1.75cm and 1cm);
+        \filldraw[fill=cyan, draw=blue] (0,0) -- (12mm,0mm) arc (0:30:12mm) -- (0,0);
+      \end{tikzpicture}
+      #+END_SRC
+    #+BEGIN_HTML
+    <img alt="line.png" src="/assets/img/path6.png"/>
+    #+END_HTML
+*** node
+    node 是带有文字的简单图形例如矩形和圆形组成的，node 对于给定的坐标默认是中心对齐的，可以指定对齐方式，例如 right 放在坐标的右边。
+    #+HEADER: :file path7.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 200 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \begin{tikzpicture}
+        \fill[fill=yellow]
+        (0,0) node {1st node}
+        -- (1,1) node[circle,inner sep=0pt,draw] {2nd node}
+        -- (0,2) node[fill=red!20,draw,double,rounded corners] {3rd node};
+      \end{tikzpicture}
+      #+END_SRC
+      #+BEGIN_HTML
+      <img alt="line.png" src="/assets/img/path7.png"/>
+      #+END_HTML
+*** 流程图
+    #+HEADER: :file path8.png :imagemagick yes :exports code
+    #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+    #+HEADER: :fit yes :imoutoptions -geometry 1600 :iminoptions -density 300
+    #+BEGIN_SRC latex
+      \usetikzlibrary{shapes,arrows,chains}
+      \begin{tikzpicture}[
+        >=triangle 60,              % Nice arrows; your taste may be different
+        start chain=going below,    % General flow is top-to-bottom
+        node distance=6mm and 60mm, % Global setup of box spacing
+        every join/.style={norm},   % Default linetype for connecting boxes
+        ]
+        \tikzset{
+          base/.style={draw, on chain, on grid, align=center, minimum height=6ex},
+          proc/.style={base, rectangle, text width=8em},
+          test/.style={base, diamond, aspect=2, text width=3em},
+          term/.style={base, ellipse},
+          % coord node style is used for placing corners of connecting lines
+          coord/.style={coordinate, on chain, on grid, node distance=6mm and 10cm},
+          % -------------------------------------------------
+          norm/.style={->, draw},
+        }
+        \node [term] (problem) {problem};
+        \node [proc, join] (identification) {Identification of required data};
+        \node [proc, join] (pre-process) {Data pre-processing};
+        \node [proc, join] (training-set) {Definition of training
+          set};
+        \node [proc, join, fill=grey!30] (algorithm) {Algorithm selection};
+        \node [proc, join] (training) {Training};
+
+        \node [proc, join] (evaluation) {Evaluation with test set};
+        \node [test, join] (is-ok) {OK?};
+        \node [proc, right=of is-ok, fill=grey!30] (classifier) {Classifier};
+        \node [proc, left=of training] (tunning) {Parameter tuning};
+
+        \node [coord, left=of algorithm] (co-algorithm)  {};
+        \node [coord, left=of training-set] (co-training-set)  {};
+        \node [coord, left=of pre-process] (co-pre-process)  {};
+        \node [coord, left=of identification] (co-identification)  {};
+
+        \path (is-ok.east) to node [very near start, yshift=1em] {YES} (classifier.west);
+        \path (is-ok.west) to node [very near start] {No} (tunning.south);
+
+        \draw [->] (is-ok.east) -- (classifier);
+        \draw [->] (is-ok.west) -| (tunning);
+        \draw [->] (tunning.east) -- (training);
+        \draw [->] (is-ok.west) -| (co-algorithm) |- (algorithm);
+        \draw [->] (is-ok.west) -- ++(-7cm, 0) |- (training-set);
+        \draw [->] (is-ok.west) -- ++(-8cm, 0) |- (pre-process);
+        \draw [->] (is-ok.west) -- ++(-10cm, 0) |- (identification);
+      \end{tikzpicture}
+      #+END_SRC
+    #+BEGIN_HTML
+    <img width="800" alt="line.png" src="/assets/img/path8.png"/>
+    #+END_HTML
+    - 首先设置样式
+    - 创建实体 node, 指明相对位置
+    - 使用 chain 的 join 命令将 box 跟上一个 box 连接起来
+    - 横折线有两种画法
+      - 从起点连接 coordinator node，然后连接到终点
+      - 从起点开始使用相对距离移动到第一个转折点，然后再连接到终点

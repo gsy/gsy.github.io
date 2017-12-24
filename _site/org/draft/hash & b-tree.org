@@ -1,0 +1,27 @@
+Hash跟B-Tree有什么区别？为什么数据库选择B-Tree作为索引的主要实现，而不选择hash table
+
+* Hash
+  hash的查找时间复杂度是O(1)，效率非常高。但是也有缺点。
+** hash的使用场景限制
+   - hash不能用于范围查找。hash_code不一定保持原来的顺序，所以不能表示大小关系
+   - hash不能用来排序
+   - hash索引不能支持组合索引
+
+* B-Tree
+  B-Tree是二叉查找树的推广，多路查找树。Donald Knuth对B-Tree的定义：
+  #+BEGIN_QUOTE
+  1.Every node has at most m children.
+  2.Every non-leaf node (except root) has at least ⌈m/2⌉ children.
+  3.The root has at least two children if it is not a leaf node.
+  4.A non-leaf node with k children contains k−1 keys.
+  5.All leaves appear in the same level
+  #+END_QUOTE
+  B-Tree要求非叶子节点至少半满，两个半满的非叶子节点可以合并成一个全满的节点，一个全满的节点可以分裂成两个半满的节点。
+** B-Tree作为索引的优点
+   1. keys是有序的，所以可以顺序遍历
+   2. 树形结构保证读磁盘的次数很少
+   3. 不是全满的节点支持快速插入和删除
+   4. 使用递归算法保证索引平衡
+   
+
+   

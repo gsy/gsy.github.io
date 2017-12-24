@@ -1,2 +1,10 @@
 jekyll/_site
 .DS_Store
+
+
+*.aux
+org/auto/
+org/draft/
+org/ltxpng/
+
+.sass-cache/

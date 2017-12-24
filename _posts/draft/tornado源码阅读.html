@@ -1,0 +1,209 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. <span class="underline"><span class="underline">init</span></span></a></li>
+<li><a href="#sec-2">2. auth</a>
+<ul>
+<li><a href="#sec-2-1">2.1. login</a></li>
+<li><a href="#sec-2-2">2.2. non-login</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. autoreload</a></li>
+<li><a href="#sec-4">4. concurrent</a></li>
+<li><a href="#sec-5">5. curl-httpclient</a></li>
+<li><a href="#sec-6">6. escape</a></li>
+<li><a href="#sec-7">7. gen</a>
+<ul>
+<li><a href="#sec-7-1">7.1. YieldPoint</a></li>
+<li><a href="#sec-7-2">7.2. Callback</a></li>
+<li><a href="#sec-7-3">7.3. Wait</a></li>
+<li><a href="#sec-7-4">7.4. WaitAll</a></li>
+<li><a href="#sec-7-5">7.5. Task</a></li>
+<li><a href="#sec-7-6">7.6. Runner</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> <span class="underline"><span class="underline">init</span></span></h2>
+<div class="outline-text-2" id="text-1">
+<p>
+一些import
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> auth</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+认证方法
+</p>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> login</h3>
+<div class="outline-text-3" id="text-2-1">
+<ul class="org-ul">
+<li>authenticate<sub>redirect</sub>
+</li>
+<li>authorize<sub>redirect</sub>
+</li>
+<li>get<sub>authenticated</sub><sub>user</sub>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> non-login</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+use authentication tokens
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> autoreload</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li>为什么python在一个package里可以使用全局变量?
+</li>
+<li>文件使用stat获取最近更新时间mtime
+</li>
+<li>ioloop定时检查文件是否更新，如果mtime已经不是保存的时间，那么reload
+</li>
+<li>ioloop内部使用了操作系统的signal做定时？
+</li>
+<li>使用execv重新执行脚本达到重启的目的
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> concurrent</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+带有日志的Future类
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> curl-httpclient</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+使用pycurl实现的非阻塞http client
+</p>
+</div>
+</div>
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> escape</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+字符串处理，应该是防止xss攻击的。使用正则表达式的替换操作
+</p>
+</div>
+</div>
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7"><span class="section-number-2">7</span> gen</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+编程的方式是同步的，实际执行的效果是异步的。
+这里是基于generator来实现的。
+怎么实现阻塞的呢？
+如果思路是传递Future，有点像Monad，return x &gt;&gt;= A &gt;&gt;= B &gt;&gt;= C
+这样就组成了工作流
+</p>
+<ul class="org-ul">
+<li>first<sub>yield需要返回一个futurn</sub>, 将其注册到ioloop里
+</li>
+<li>ioloop调度，直到future有结果
+</li>
+<li>把结果发送给generator，接收者开始执行
+</li>
+<li>ioloop调度
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-7-1" class="outline-3">
+<h3 id="sec-7-1"><span class="section-number-3">7.1</span> YieldPoint</h3>
+<div class="outline-text-3" id="text-7-1">
+<ul class="org-ul">
+<li>start
+yield了之后被runner调用，为什么需要有个runner呢？
+</li>
+<li>is<sub>ready</sub>
+     是否准备好被runner重新执行的标志
+</li>
+<li>get<sub>result</sub>
+     yield表达式的result
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-7-2" class="outline-3">
+<h3 id="sec-7-2"><span class="section-number-3">7.2</span> Callback</h3>
+<div class="outline-text-3" id="text-7-2">
+<p>
+一个Callback对应一个Wait，使用key来找到对应的Wait
+</p>
+</div>
+</div>
+<div id="outline-container-sec-7-3" class="outline-3">
+<h3 id="sec-7-3"><span class="section-number-3">7.3</span> Wait</h3>
+<div class="outline-text-3" id="text-7-3">
+<p>
+Callback的结果？
+</p>
+</div>
+</div>
+<div id="outline-container-sec-7-4" class="outline-3">
+<h3 id="sec-7-4"><span class="section-number-3">7.4</span> WaitAll</h3>
+<div class="outline-text-3" id="text-7-4">
+<p>
+给出一系列key，返回对应的Callback的执行结果
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-sec-7-5" class="outline-3">
+<h3 id="sec-7-5"><span class="section-number-3">7.5</span> Task</h3>
+<div class="outline-text-3" id="text-7-5">
+<p>
+将一个回调函数包装成coroutines，返回的结果是Future
+</p>
+</div>
+</div>
+<div id="outline-container-sec-7-6" class="outline-3">
+<h3 id="sec-7-6"><span class="section-number-3">7.6</span> Runner</h3>
+<div class="outline-text-3" id="text-7-6">
+<ul class="org-ul">
+<li>register<sub>callback</sub>
+     使用key注册Callback
+</li>
+<li>is<sub>ready</sub>
+     检查key是否已经完成，可以获取结果了
+</li>
+<li>set<sub>result</sub>
+     从yield<sub>point中获取结果，并且保存在results列表中</sub>
+</li>
+<li>pop<sub>result</sub>
+     移除结果，callback也解除注册
+</li>
+<li>run
+跑起来，知道到达一个不能获取结果的yield<sub>point。</sub>
+<ul class="org-ul">
+<li>从future里面获取result，然后将result send给generator
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>

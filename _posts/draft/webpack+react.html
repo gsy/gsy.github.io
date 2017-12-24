@@ -1,0 +1,99 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. webpack</a>
+<ul>
+<li><a href="#sec-1-1">1.1. 安装webpack</a></li>
+<li><a href="#sec-1-2">1.2. demo</a></li>
+<li><a href="#sec-1-3">1.3. webpack-dev-server</a></li>
+<li><a href="#sec-1-4">1.4. workflow</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> webpack</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>concate file
+</li>
+<li>minify
+</li>
+<li></li>
+</ul>
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> 安装webpack</h3>
+<div class="outline-text-3" id="text-1-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install webpack -g
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> demo</h3>
+<div class="outline-text-3" id="text-1-2">
+<ul class="org-ul">
+<li>app.js
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-javascript">document.write(<span style="color: #8b2252;">'welcome to my app'</span>);
+console.log(<span style="color: #8b2252;">'app loaded'</span>);
+</pre>
+</div>
+<ul class="org-ul">
+<li>index.html
+<div class="org-src-container">
+
+<pre class="src src-html">&lt;<span style="color: #0000ff;">html</span>&gt;
+  &lt;<span style="color: #0000ff;">body</span>&gt;
+    &lt;<span style="color: #0000ff;">script</span> <span style="color: #a0522d;">src</span>=<span style="color: #8b2252;">"bundle.js"</span>&gt;&lt;/<span style="color: #0000ff;">script</span>&gt;
+  &lt;/<span style="color: #0000ff;">body</span>&gt;
+&lt;/<span style="color: #0000ff;">html</span>&gt;
+</pre>
+</div>
+</li>
+<li>build
+<div class="org-src-container">
+
+<pre class="src src-sh">webpack ./app.js bundle.js
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> webpack-dev-server</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>install
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install webpack-dev-server -g
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> workflow</h3>
+<div class="outline-text-3" id="text-1-4">
+<ul class="org-ul">
+<li>scaffold
+npm init
+</li>
+<li></li>
+</ul>
+</div>
+</div>
+</div>

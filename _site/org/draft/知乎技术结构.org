@@ -1,0 +1,15 @@
+* tornado
+* redis
+  队列、搜索，分片
+* 工具
+  Profiling, Werkzeug, Puppet, Shipit, Kids
+* 事件驱动
+  Sink, Miller, Beanstalkd
+* 渲染模板
+  zhihunode
+* rpc框架
+
+  
+  
+  
+

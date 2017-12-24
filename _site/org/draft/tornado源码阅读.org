@@ -1,0 +1,70 @@
+* __init__
+  一些import
+* auth
+  认证方法
+** login
+   - authenticate_redirect
+   - authorize_redirect
+   - get_authenticated_user
+** non-login
+   use authentication tokens
+
+* autoreload
+  - 为什么python在一个package里可以使用全局变量?
+  - 文件使用stat获取最近更新时间mtime
+  - ioloop定时检查文件是否更新，如果mtime已经不是保存的时间，那么reload
+  - ioloop内部使用了操作系统的signal做定时？
+  - 使用execv重新执行脚本达到重启的目的
+
+* concurrent
+  带有日志的Future类
+  
+* curl-httpclient
+  使用pycurl实现的非阻塞http client
+* escape
+  字符串处理，应该是防止xss攻击的。使用正则表达式的替换操作
+* gen
+  编程的方式是同步的，实际执行的效果是异步的。
+  这里是基于generator来实现的。
+  怎么实现阻塞的呢？
+  如果思路是传递Future，有点像Monad，return x >>= A >>= B >>= C
+  这样就组成了工作流
+  - first_yield需要返回一个futurn, 将其注册到ioloop里
+  - ioloop调度，直到future有结果
+  - 把结果发送给generator，接收者开始执行
+  - ioloop调度
+  
+** YieldPoint
+   - start
+     yield了之后被runner调用，为什么需要有个runner呢？
+   - is_ready
+     是否准备好被runner重新执行的标志
+   - get_result
+     yield表达式的result
+     
+** Callback
+   一个Callback对应一个Wait，使用key来找到对应的Wait
+** Wait
+   Callback的结果？
+** WaitAll
+   给出一系列key，返回对应的Callback的执行结果
+   
+   
+** Task
+   将一个回调函数包装成coroutines，返回的结果是Future
+** Runner
+   - register_callback
+     使用key注册Callback
+   - is_ready
+     检查key是否已经完成，可以获取结果了
+   - set_result
+     从yield_point中获取结果，并且保存在results列表中
+   - pop_result
+     移除结果，callback也解除注册
+   - run
+     跑起来，知道到达一个不能获取结果的yield_point。
+     - 从future里面获取result，然后将result send给generator
+
+     
+     
+     

@@ -1,0 +1,164 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. flask代码结构</a></li>
+<li><a href="#sec-2">2. flask各文件的主要作用</a>
+<ul>
+<li><a href="#sec-2-1">2.1. <span class="underline"><span class="underline">init</span></span></a></li>
+<li><a href="#sec-2-2">2.2. <span class="underline"><span class="underline">main</span></span></a></li>
+<li><a href="#sec-2-3">2.3. _compat</a></li>
+<li><a href="#sec-2-4">2.4. app</a>
+<ul>
+<li><a href="#sec-2-4-1">2.4.1. dispatch<sub>request</sub></a></li>
+<li><a href="#sec-2-4-2">2.4.2. full<sub>dispatch</sub><sub>request</sub></a>
+<ul>
+<li><a href="#sec-2-4-2-1">picture</a></li>
+</ul>
+</li>
+<li><a href="#sec-2-4-3">2.4.3. wsgi<sub>app</sub></a></li>
+</ul>
+</li>
+<li><a href="#sec-2-5">2.5. blueprints</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> flask代码结构</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>flask 主代码
+</li>
+<li>test 测试
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> flask各文件的主要作用</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> <span class="underline"><span class="underline">init</span></span></h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+引入各种包，简化命名
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> <span class="underline"><span class="underline">main</span></span></h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+flask.run命令的别名文件
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> _compat</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+对py2和py3做兼容处理
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-4" class="outline-3">
+<h3 id="sec-2-4"><span class="section-number-3">2.4</span> app</h3>
+<div class="outline-text-3" id="text-2-4">
+<ul class="org-ul">
+<li>定义了一些全局对象：Request, Response, Environment, Globals
+</li>
+<li>del函数的作用是什么？为什么定义了两个函数之后又设置成none？
+</li>
+<li>request hooks:
+<ul class="org-ul">
+<li>before<sub>first</sub><sub>request</sub>
+</li>
+<li>before<sub>request</sub>
+</li>
+<li>after<sub>request</sub>
+</li>
+<li>teardown<sub>request</sub>
+</li>
+<li>url<sub>value</sub><sub>preprocessor</sub>
+</li>
+</ul>
+</li>
+<li>Blueprint是什么？
+</li>
+<li>locked<sub>cached</sub><sub>property的作用？</sub>
+</li>
+<li>锁怎么用？在资源管理器with中怎么用？
+</li>
+<li>instance<sub>path</sub>?
+</li>
+<li>jinja autoescape?
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-2-4-1" class="outline-4">
+<h4 id="sec-2-4-1"><span class="section-number-4">2.4.1</span> dispatch<sub>request</sub></h4>
+<div class="outline-text-4" id="text-2-4-1">
+<ul class="org-ul">
+<li>get request from request stack
+</li>
+<li>get rule
+</li>
+<li>find view<sub>function</sub> according to rule.endpoint
+</li>
+<li>serve and return result
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2-4-2" class="outline-4">
+<h4 id="sec-2-4-2"><span class="section-number-4">2.4.2</span> full<sub>dispatch</sub><sub>request</sub></h4>
+<div class="outline-text-4" id="text-2-4-2">
+<ul class="org-ul">
+<li>preprossess
+</li>
+<li>dispatch<sub>request</sub>
+</li>
+<li>make<sub>response</sub>
+</li>
+<li>process<sub>response</sub>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-2-4-2-1" class="outline-5">
+<h5 id="sec-2-4-2-1">picture</h5>
+<div class="outline-text-5" id="text-2-4-2-1">
+<p>
+<img src="full_dispatch_request.png" alt="full_dispatch_request.png" />
+q<img src="full_dispatch_request.png" alt="full_dispatch_request.png" />
+</p>
+</div>
+</div>
+</div>
+
+
+
+
+<div id="outline-container-sec-2-4-3" class="outline-4">
+<h4 id="sec-2-4-3"><span class="section-number-4">2.4.3</span> wsgi<sub>app</sub></h4>
+<div class="outline-text-4" id="text-2-4-3">
+<p>
+environ, start<sub>response</sub> callback function
+</p>
+<ol class="org-ol">
+<li>make context from environment
+</li>
+<li>dispatch request and get response
+</li>
+<li>handle error if error occurred
+</li>
+</ol>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-5" class="outline-3">
+<h3 id="sec-2-5"><span class="section-number-3">2.5</span> blueprints</h3>
+</div>
+</div>

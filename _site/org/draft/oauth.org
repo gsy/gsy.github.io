@@ -1,0 +1,67 @@
+* 笔记
+** Roles
+   OAuth defines four roles:
+
+***   resource owner
+      An entity capable of granting access to a protected resource.
+      When the resource owner is a person, it is referred to as an
+      end-user.
+
+***   resource server
+      The server hosting the protected resources, capable of accepting
+      and responding to protected resource requests using access tokens.
+
+***   client
+      An application making protected resource requests on behalf of the
+      resource owner and with its authorization.  The term "client" does
+      not imply any particular implementation characteristics (e.g.,
+      whether the application executes on a server, a desktop, or other
+      devices).
+
+***   authorization server
+      The server issuing access tokens to the client after successfully
+      authenticating the resource owner and obtaining authorization.
+
+** Protocol Flow
+   #+BEGIN_SRC ditaa :file oauth_protocol_flow.png :cmdline -r -s 0.8
+     +--------+                               +---------------+
+     |        |--(A)- Authorization Request ->|   Resource    |
+     |        |                               |     Owner     |
+     |        |<-(B)-- Authorization Grant ---|               |
+     |        |                               +---------------+
+     |        |
+     |        |                               +---------------+
+     |        |--(C)-- Authorization Grant -->| Authorization |
+     | Client |                               |     Server    |
+     |        |<-(D)----- Access Token -------|               |
+     |        |                               +---------------+
+     |        |
+     |        |                               +---------------+
+     |        |--(E)----- Access Token ------>|    Resource   |
+     |        |                               |     Server    |
+     |        |<-(F)--- Protected Resource ---|               |
+     +--------+                               +---------------+
+
+   #+END_SRC
+
+   #+results:
+   [[file:oauth_protocol_flow.png]]
+
+
+
+* zhihu oauth example
+** 我想登录zhihu，但是没有知乎的账号，我希望使用qq登录，qq登录完成后要把我带回知乎
+   - authorize_url
+     https://graph.qq.com/oauth/show?which=Login&display=pc&scope=get_user_info%2Cget_info%2Cadd_t%2Cadd_pic_t%2Cget_other_info%2Cget_fanslist%2Cget_idollist%2Cadd_idol%2Cadd_share&state=c99bfa32f6a63c70d14246d4042b43f9&redirect_uri=http%3A%2F%2Fwww.zhihu.com%2Foauth%2Fcallback%2Fqqconn&response_type=code&client_id=100490701
+   - callback url
+     http://www.zhihu.com/oauth/redirect/login/qqconn?next=/oauth/account_callback
+** 我在qq上完成登录
+   给知乎权限，重定向到
+   http://www.zhihu.com/oauth/callback/qqconn?code=CD4056078054031BDDD40F8C8A373C78&state=9afa13ecf340f82fa44f63a9c5457be2
+   可以看出，知乎拿到了code字段作为认证标识
+* 参考资料
+  https://zh.wikipedia.org/zh-cn/OAuth
+  http://www.barretlee.com/blog/2016/01/10/oauth2-introduce/
+  https://hueniverse.com/2015/09/19/auth-to-see-the-wizard-or-i-wrote-an-oauth-replacement/
+   
+  

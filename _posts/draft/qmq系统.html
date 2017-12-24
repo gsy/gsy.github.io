@@ -1,0 +1,31 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. 一致性</a></li>
+<li><a href="#sec-2">2. 同一个事务</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 一致性</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+qmq系统的作用是希望业务流程跟消息发送是一致的。当业务成功时，消息可靠发出去。当业务失败时，消息也不会发出。保证无论是先发送消息还是先处理业务，消息跟业务的状态是一致的
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 同一个事务</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+在业务使用的数据库实例上创建了一个消息表，业务写业务数据到业务表，消息写到消息表，这两个动作是在同一个事务中的。这样就保证了业务跟消息状态是一致的。然后有一个线程池将各个业务系统的消息拉倒真正的消息系统中，同时将业务系统中的消息删掉。同时有一个定时任务去消费消息系统中的消息。qmq的真正的消息系统是基于数据库的：可靠性一致，存储类型一致。
+</p>
+<ul class="org-ul">
+<li>队列
+</li>
+<li>消息分组
+</li>
+</ul>
+</div>
+</div>

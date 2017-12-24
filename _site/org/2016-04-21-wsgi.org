@@ -1,0 +1,339 @@
+#+BEGIN_HTML
+---
+layout: post
+title: WSGI
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+#+OPTIONS: ^:nil
+* wsgi是什么
+  WSGI是Web Server Gateway Interface的缩写。这个接口在web服务器和web应用程序或者框架之间使用。
+** server/gateway
+   调用application提供的一个callable对象.
+   #+BEGIN_SRC python
+     # coding: utf-8
+     import os, sys
+
+     enc, esc = sys.getfilesystemencoding(), 'surrogateescape'
+
+     # 定义了传输的编码转换
+     def unicode_to_wsgi(u):
+         # Convert an environment variable to a WSGI "bytes-as-unicode" string
+         return u.encode(enc, esc).decode('iso-8859-1')
+
+     def wsgi_to_bytes(s):
+         return s.encode('iso-8859-1')
+
+     def run_with_cgi(application):
+         # environ这个抽象是个map，为application准备执行的环境
+         environ = {k: unicode_to_wsgi(v) for k,v in os.environ.items()}
+         environ['wsgi.input']        = sys.stdin.buffer
+         environ['wsgi.errors']       = sys.stderr
+         environ['wsgi.version']      = (1, 0)
+         environ['wsgi.multithread']  = False
+         environ['wsgi.multiprocess'] = True
+         environ['wsgi.run_once']     = True
+
+         if environ.get('HTTPS', 'off') in ('on', '1'):
+             environ['wsgi.url_scheme'] = 'https'
+         else:
+             environ['wsgi.url_scheme'] = 'http'
+
+         headers_set = []
+         headers_sent = []
+
+         # 将response的数据返回：1.返回header 2.返回data
+         def write(data):
+             out = sys.stdout.buffer
+
+             if not headers_set:
+                  raise AssertionError("write() before start_response()")
+
+             elif not headers_sent:
+                  # Before the first output, send the stored headers
+                  status, response_headers = headers_sent[:] = headers_set
+                  out.write(wsgi_to_bytes('Status: %s\r\n' % status))
+                  for header in response_headers:
+                      out.write(wsgi_to_bytes('%s: %s\r\n' % header))
+                  out.write(wsgi_to_bytes('\r\n'))
+
+             out.write(data)
+             out.flush()
+
+         # wsgi server负责将数据返回给web server
+         def start_response(status, response_headers, exc_info=None):
+             if exc_info:
+                 try:
+                     if headers_sent:
+                         # Re-raise original exception if headers sent
+                         raise exc_info[1].with_traceback(exc_info[2])
+                 finally:
+                     exc_info = None     # avoid dangling circular ref
+             elif headers_set:
+                 raise AssertionError("Headers already set!")
+
+             headers_set[:] = [status, response_headers]
+
+             # Note: error checking on the headers should happen here,
+             # *after* the headers are set.  That way, if an error
+             # occurs, start_response can only be re-called with
+             # exc_info set.
+
+             return write
+
+         # ？
+         result = application(environ, start_response)
+         try:
+             for data in result:
+                 if data:    # don't send headers until body appears
+                     write(data)
+             if not headers_sent:
+                 write('')   # send headers now if body was empty
+         finally:
+             if hasattr(result, 'close'):
+                 result.close()   
+   #+END_SRC
+** application/framework
+   提供server调用的callable对象。callable必须满足一下条件：
+   - 接收两个固定位置参数
+     - 一个存储类似CGI变量的字典
+     - 一个可以将HTTP status code/message及HTTP headers发送给server的函数
+   - 包装response body到一个字符类型的迭代器中。
+   #+BEGIN_SRC python
+     # coding: utf-8
+     HELLO_WORLD = b"Hello world!\n"
+
+
+     def simple_app(environ, start_response):
+         """Simplest possible application object.
+         application包含一个start_response函数，对request做出反应
+         """
+         status = '200 OK'
+         response_headers = [('Content-type', 'text/plain')]
+         # 先返回http header
+         start_response(status, response_headers)
+         # 然后返回内容
+         return [HELLO_WORLD]
+
+     class AppClass:
+         """Produce the same output, but using a class
+
+         (Note: 'AppClass' is the "application" here, so calling it
+         returns an instance of 'AppClass', which is then the iterable
+         return value of the "application callable" as required by
+         the spec.
+
+         If we wanted to use *instances* of 'AppClass' as application
+         objects instead, we would have to implement a '__call__'
+         method, which would be invoked to execute the application,
+         and we would need to create an instance for use by the
+         server or gateway.
+         """
+
+         def __init__(            
+                 self,
+                 # environ points to a dictionary containing CGI like environment variables
+                 # which is filled by the server for each received request from the client            
+                 environ,
+                 # start_response is a callback function supplied by the server
+                 # which will be used to send the HTTP status and headers to the server
+                 start_response):
+             self.environ = environ
+             
+             self.start = start_response
+
+         def __iter__(self):
+             status = '200 OK'
+             response_headers = [('Content-type', 'text/plain')]
+             self.start(status, response_headers)
+             # 通过yield来返回内容
+             yield HELLO_WORLD
+  #+END_SRC
+** enviroment字典
+   每个请求到达server时，server会填充一个environment字典。
+   下面的url会解析出QUERY_STRING和REQUEST_METHOD两个变量，用于保存url中的请求参数和http的调用方法。
+   #+BEGIN_SRC python
+     #! /usr/bin/env python
+     # coding: utf-8
+
+     # Our tutorial's WSGI server
+     from wsgiref.simple_server import make_server
+
+     def application(environ, start_response):
+
+        # Sorting and stringifying the environment key, value pairs
+        response_body = ['%s: %s' % (key, value)
+                         for key, value in sorted(environ.items())]
+        response_body = '\n'.join(response_body)
+
+        status = '200 OK'
+        response_headers = [('Content-Type', 'text/plain'),
+                       ('Content-Length', str(len(response_body)))]
+        start_response(status, response_headers)
+
+        return [response_body]
+
+     # Instantiate the WSGI server.
+     # It will receive the request, pass it to the application
+     # and send the application's response to the client
+     httpd = make_server(
+        '127.0.0.1', # The host name.
+        8085, # A port number where to wait for the request.
+        application # Our application object name, in this case a function.
+        )
+
+     # Wait for a single request, serve it and quit.
+     httpd.handle_request()
+        
+   #+END_SRC
+** middleware
+   对其所所在的server，扮演着application的角色。对于其包含的application，扮演着server的角色。因为middleware实现了server/application两个角色的，所以可以插入到最外层的server和最终的application之间，并且可以叠加形成chain。完成不同功能的组合。一个middleware可以作为基本的组件使用。
+
+** server调用application的callable对象
+   #+BEGIN_SRC dot :file wsgi_model.png
+     digraph G {
+             node [shape=record]
+             server [label = "WSGI Server/Gateway"];
+             subgraph cluster1 {
+                     node [shape=record]
+                     callable [label="callable"]
+                     label = "WSGI Application/Framework";
+                     color = "black"
+             }
+             server -> callable [label="invoke"]
+     }
+   #+END_SRC
+
+   #+RESULTS:
+   [[file:wsgi_model.png]]
+** 解析get参数
+   可以自己写函数去解析参数，cgi也提供了解析和转义用户输入参数的方法。
+   #+BEGIN_SRC python
+     #!/usr/bin/env python
+
+     from wsgiref.simple_server import make_server
+     from cgi import parse_qs, escape
+
+     html = """
+     <html>
+     <body>
+        <form method="get" action="parsing_get.wsgi">
+           <p>
+              Age: <input type="text" name="age">
+              </p>
+           <p>
+              Hobbies:
+              <input name="hobbies" type="checkbox" value="software"> Software
+              <input name="hobbies" type="checkbox" value="tunning"> Auto Tunning
+              </p>
+           <p>
+              <input type="submit" value="Submit">
+              </p>
+           </form>
+        <p>
+           Age: %s<br>
+           Hobbies: %s
+           </p>
+        </body>
+     </html>"""
+
+     def application(environ, start_response):
+
+        # Returns a dictionary containing lists as values.
+        d = parse_qs(environ['QUERY_STRING'])
+
+        # In this idiom you must issue a list containing a default value.
+        age = d.get('age', [''])[0] # Returns the first age value.
+        hobbies = d.get('hobbies', []) # Returns a list of hobbies.
+
+        # Always escape user input to avoid script injection
+        age = escape(age)
+        hobbies = [escape(hobby) for hobby in hobbies]
+
+        response_body = html % (age or 'Empty',
+                    ', '.join(hobbies or ['No Hobbies']))
+
+        status = '200 OK'
+
+        # Now content type is text/html
+        response_headers = [('Content-Type', 'text/html'),
+                       ('Content-Length', str(len(response_body)))]
+        start_response(status, response_headers)
+
+        return [response_body]
+
+     httpd = make_server('localhost', 8051, application)
+     # Now it is serve_forever() in instead of handle_request().
+     # In Windows you can kill it in the Task Manager (python.exe).
+     # In Linux a Ctrl-C will do it.
+     httpd.serve_forever()   
+   #+END_SRC
+** 解析post参数
+   使用cgi模块提供的解析和转义输入参数的方法解析出post参数
+   #+BEGIN_SRC python
+     #!/usr/bin/env python
+
+     from wsgiref.simple_server import make_server
+     from cgi import parse_qs, escape
+
+     html = """
+     <html>
+     <body>
+        <form method="post" action="parsing_post.wsgi">
+           <p>
+              Age: <input type="text" name="age">
+              </p>
+           <p>
+              Hobbies:
+              <input name="hobbies" type="checkbox" value="software"> Software
+              <input name="hobbies" type="checkbox" value="tunning"> Auto Tunning
+              </p>
+           <p>
+              <input type="submit" value="Submit">
+              </p>
+           </form>
+        <p>
+           Age: %s<br>
+           Hobbies: %s
+           </p>
+        </body>
+     </html>
+     """
+
+     def application(environ, start_response):
+
+        # the environment variable CONTENT_LENGTH may be empty or missing
+        try:
+           request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+        except (ValueError):
+           request_body_size = 0
+
+        # When the method is POST the query string will be sent
+        # in the HTTP request body which is passed by the WSGI server
+        # in the file like wsgi.input environment variable.
+        request_body = environ['wsgi.input'].read(request_body_size)
+        d = parse_qs(request_body)
+
+        age = d.get('age', [''])[0] # Returns the first age value.
+        hobbies = d.get('hobbies', []) # Returns a list of hobbies.
+
+        # Always escape user input to avoid script injection
+        age = escape(age)
+        hobbies = [escape(hobby) for hobby in hobbies]
+
+        response_body = html % (age or 'Empty',
+                    ', '.join(hobbies or ['No Hobbies']))
+
+        status = '200 OK'
+
+        response_headers = [('Content-Type', 'text/html'),
+                       ('Content-Length', str(len(response_body)))]
+        start_response(status, response_headers)
+
+        return [response_body]
+
+     httpd = make_server('localhost', 8051, application)
+     httpd.serve_forever()
+
+   #+END_SRC
+
