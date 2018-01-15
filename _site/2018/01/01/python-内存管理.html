@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+    <title>Python 内存管理</title>
+    <!-- link to main stylesheet -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+
+    
+    <body>
+	<article class="content">
+	    <h1 class="title">
+		<a href="" title="Python 内存管理">Python 内存管理</a>
+	    </h1>
+	    <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> python 内存管理</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+python 使用内存池来管理小块内存的申请和释放，大内存使用 c 的 malloc 和 free 进行管理。
+</p>
+
+<p>
+小内存管理层级从上到下分成4级。内存池 -&gt; arena -&gt; pool -&gt; block
+</p>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> block</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+block 是一个固定大小的内存块。申请一块小内存会返回最接近申请值大小的 block。比如申请28字节的内存，会使用32字节的 block。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> pool</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+pool 是跟内存页一样大（4KB）的内存块，管理着一组 block，pool 内部 block 的大小是相同的，由 pool\<sub>header</sub> 中 szidx 指明。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Pool for small blocks. </span><span style="color: #5F7F5F;">*/</span>
+<span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">pool_header</span> {
+  <span style="color: #F0DFAF; font-weight: bold;">union</span> { <span style="color: #7CB8BB;">block</span> *<span style="color: #DFAF8F;">_padding</span>;
+    <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">count</span>; } <span style="color: #DFAF8F;">ref</span>;          <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">number of allocated blocks    </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">block</span> *<span style="color: #DFAF8F;">freeblock</span>;                   <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">pool's free list head         </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">pool_header</span> *<span style="color: #DFAF8F;">nextpool</span>;       <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">next pool of this size class  </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">pool_header</span> *<span style="color: #DFAF8F;">prevpool</span>;       <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">previous pool       ""        </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">arenaindex</span>;                    <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">index into arenas of base adr </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">szidx</span>;                         <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">block size class index        </span><span style="color: #5F7F5F;">*/</span> - size class index
+  uint nextoffset;                    <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">bytes to virgin block         </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">maxnextoffset</span>;                 <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">largest valid nextoffset      </span><span style="color: #5F7F5F;">*/</span>
+};
+</pre>
+</div>
+<ul class="org-ul">
+<li>多个 pool 通过 nextpool, prevpool 指针组成双向链表
+</li>
+<li>freeblock 组成单向链表
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-1-2-1" class="outline-4">
+<h4 id="sec-1-2-1"><span class="section-number-4">1.2.1</span> pool 中 block 的分配</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<div class="figure">
+<img alt="pool_init.png" src="/assets/img/pool_init.png" />
+</div>
+
+<ul class="org-ul">
+<li>首次分配的 block 是 header 之后第一块可用的 block
+</li>
+<li>freeblock 指向下一个可用的 block，供下一次分配使用
+</li>
+<li>如果没有 block 回收后来，freeblock 前进到 nextoffset 的位置，nextoffset 增加一个 block 的距离
+</li>
+<li>如果有 block 回收了，更新 freeblock，freeblock 指向回收 block 的位置，next 指针指向原来 freeblock 所在的位置，构成单链表
+</li>
+<li>当 nextoffset &gt; maxnextoffset 时，整个 pool 的空间都分配完了。使用另外一个 pool 分配空间
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> arena</h3>
+<div class="outline-text-3" id="text-1-3">
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #F0DFAF; font-weight: bold;">typedef</span> <span style="color: #7CB8BB;">uchar</span> <span style="color: #7CB8BB;">block</span>;
+
+<span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Record keeping for arenas. </span><span style="color: #5F7F5F;">*/</span>
+<span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span> {
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">The address of the arena, as returned by malloc.  Note that 0</span>
+<span style="color: #7F9F7F;">   * will never be returned by a successful malloc, and is used</span>
+<span style="color: #7F9F7F;">   * here to mark an arena_object that doesn't correspond to an</span>
+<span style="color: #7F9F7F;">   * allocated arena.</span>
+<span style="color: #7F9F7F;">   </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">uptr</span> <span style="color: #DFAF8F;">address</span>;
+
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Pool-aligned pointer to the next pool to be carved off. </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">block</span>* <span style="color: #DFAF8F;">pool_address</span>;
+
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">The number of available pools in the arena:  free pools + never-</span>
+<span style="color: #7F9F7F;">   * allocated pools.</span>
+<span style="color: #7F9F7F;">   </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">nfreepools</span>;
+
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">The total number of pools in the arena, whether or not available. </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">ntotalpools</span>;
+
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Singly-linked list of available pools. </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">pool_header</span>* <span style="color: #DFAF8F;">freepools</span>;
+
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Whenever this arena_object is not associated with an allocated</span>
+<span style="color: #7F9F7F;">   * arena, the nextarena member is used to link all unassociated</span>
+<span style="color: #7F9F7F;">   * arena_objects in the singly-linked `unused_arena_objects` list.</span>
+<span style="color: #7F9F7F;">   * The prevarena member is unused in this case.</span>
+<span style="color: #7F9F7F;">   *</span>
+<span style="color: #7F9F7F;">   * When this arena_object is associated with an allocated arena</span>
+<span style="color: #7F9F7F;">   * with at least one available pool, both members are used in the</span>
+<span style="color: #7F9F7F;">   * doubly-linked `usable_arenas` list, which is maintained in</span>
+<span style="color: #7F9F7F;">   * increasing order of `nfreepools` values.</span>
+<span style="color: #7F9F7F;">   *</span>
+<span style="color: #7F9F7F;">   * Else this arena_object is associated with an allocated arena</span>
+<span style="color: #7F9F7F;">   * all of whose pools are in use.  `nextarena` and `prevarena`</span>
+<span style="color: #7F9F7F;">   * are both meaningless in this case.</span>
+<span style="color: #7F9F7F;">   </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span>* <span style="color: #DFAF8F;">nextarena</span>;
+  <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span>* <span style="color: #DFAF8F;">prevarena</span>;
+};
+</pre>
+</div>
+<ul class="org-ul">
+<li>由 nextarena, prevarena 两个指针构成双向链表
+</li>
+<li>freepools 是指向 arena 内可以分配的 pool 的指针
+</li>
+<li>nfreepools 表明这个 arena 里面还有多少个 pool 可供分配，如果 nfreepools == 0 则当前 arena 空间分配完了
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-1-3-1" class="outline-4">
+<h4 id="sec-1-3-1"><span class="section-number-4">1.3.1</span> arena 的状态</h4>
+<div class="outline-text-4" id="text-1-3-1">
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">The head of the singly-linked, NULL-terminated list of available</span>
+<span style="color: #7F9F7F;"> * arena_objects.</span>
+<span style="color: #7F9F7F;"> </span><span style="color: #5F7F5F;">*/</span>
+<span style="color: #F0DFAF; font-weight: bold;">static</span> <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span>* <span style="color: #DFAF8F;">unused_arena_objects</span> = <span style="color: #BFEBBF;">NULL</span>;
+
+<span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">The head of the doubly-linked, NULL-terminated at each end, list of</span>
+<span style="color: #7F9F7F;"> * arena_objects associated with arenas that have pools available.</span>
+<span style="color: #7F9F7F;"> </span><span style="color: #5F7F5F;">*/</span>
+<span style="color: #F0DFAF; font-weight: bold;">static</span> <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span>* <span style="color: #DFAF8F;">usable_arenas</span> = <span style="color: #BFEBBF;">NULL</span>;
+</pre>
+</div>
+<p>
+arena 有两种状态
+</p>
+<ul class="org-ul">
+<li>未分配过 pool 的 arena 组成单链表 unused\<sub>arena\</sub><sub>objects</sub>
+</li>
+<li>arena 内有 pool 可以分配的组成双链表 usable\<sub>arenas</sub>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3-2" class="outline-4">
+<h4 id="sec-1-3-2"><span class="section-number-4">1.3.2</span> 新建一个 arena</h4>
+<div class="outline-text-4" id="text-1-3-2">
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Allocate a new arena.  If we run out of memory, return NULL.  Else</span>
+<span style="color: #7F9F7F;"> * allocate a new arena, and return the address of an arena_object</span>
+<span style="color: #7F9F7F;"> * describing the new arena.  It's expected that the caller will set</span>
+<span style="color: #7F9F7F;"> * `usable_arenas` to the return value.</span>
+<span style="color: #7F9F7F;"> </span><span style="color: #5F7F5F;">*/</span>
+<span style="color: #F0DFAF; font-weight: bold;">static</span> <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span>*
+<span style="color: #93E0E3;">new_arena</span>(<span style="color: #7CB8BB;">void</span>)
+{
+  <span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span>* <span style="color: #DFAF8F;">arenaobj</span>;
+  <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">excess</span>;        <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">number of bytes above pool alignment </span><span style="color: #5F7F5F;">*/</span>
+  <span style="color: #7CB8BB;">void</span> *<span style="color: #DFAF8F;">address</span>;
+  <span style="color: #7CB8BB;">int</span> <span style="color: #DFAF8F;">err</span>;
+
+  <span style="color: #F0DFAF; font-weight: bold;">if</span> (unused_arena_objects == <span style="color: #BFEBBF;">NULL</span>) {
+    <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">i</span>;
+    <span style="color: #7CB8BB;">uint</span> <span style="color: #DFAF8F;">numarenas</span>;
+    <span style="color: #7CB8BB;">size_t</span> <span style="color: #DFAF8F;">nbytes</span>;
+
+    <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Double the number of arena objects on each allocation.</span>
+<span style="color: #7F9F7F;">     * Note that it's possible for `numarenas` to overflow.</span>
+<span style="color: #7F9F7F;">     </span><span style="color: #5F7F5F;">*/</span>
+    numarenas = maxarenas ? maxarenas &lt;&lt; 1 : INITIAL_ARENA_OBJECTS;
+    <span style="color: #F0DFAF; font-weight: bold;">if</span> (numarenas &lt;= maxarenas)
+      <span style="color: #F0DFAF; font-weight: bold;">return</span> <span style="color: #BFEBBF;">NULL</span>;                <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">overflow </span><span style="color: #5F7F5F;">*/</span>
+
+    ....
+
+    nbytes = numarenas * <span style="color: #F0DFAF; font-weight: bold;">sizeof</span>(*arenas);
+    arenaobj = (<span style="color: #F0DFAF; font-weight: bold;">struct</span> <span style="color: #7CB8BB;">arena_object</span> *)realloc(arenas, nbytes);
+    <span style="color: #F0DFAF; font-weight: bold;">if</span> (arenaobj == <span style="color: #BFEBBF;">NULL</span>)
+      <span style="color: #F0DFAF; font-weight: bold;">return</span> <span style="color: #BFEBBF;">NULL</span>;
+    arenas = arenaobj;
+
+    <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">We might need to fix pointers that were copied.  However,</span>
+<span style="color: #7F9F7F;">     * new_arena only gets called when all the pages in the</span>
+<span style="color: #7F9F7F;">     * previous arenas are full.  Thus, there are *no* pointers</span>
+<span style="color: #7F9F7F;">     * into the old array. Thus, we don't have to worry about</span>
+<span style="color: #7F9F7F;">     * invalid pointers.  Just to be sure, some asserts:</span>
+<span style="color: #7F9F7F;">     </span><span style="color: #5F7F5F;">*/</span>
+    assert(usable_arenas == <span style="color: #BFEBBF;">NULL</span>);
+    assert(unused_arena_objects == <span style="color: #BFEBBF;">NULL</span>);
+
+    <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Put the new arenas on the unused_arena_objects list. </span><span style="color: #5F7F5F;">*/</span>
+    <span style="color: #F0DFAF; font-weight: bold;">for</span> (i = maxarenas; i &lt; numarenas; ++i) {
+      arenas[i].address = 0;              <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">mark as unassociated </span><span style="color: #5F7F5F;">*/</span>
+      arenas[i].nextarena = i &lt; numarenas - 1 ?
+        &amp;arenas[i+1] : <span style="color: #BFEBBF;">NULL</span>;
+    }
+
+    unused_arena_objects = &amp;arenas[maxarenas];
+
+    maxarenas = numarenas;
+  }
+
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">Take the next available arena object off the head of the list. </span><span style="color: #5F7F5F;">*/</span>
+  assert(unused_arena_objects != <span style="color: #BFEBBF;">NULL</span>);
+
+  arenaobj = unused_arena_objects;
+  unused_arena_objects = arenaobj-&gt;nextarena;
+
+  assert(arenaobj-&gt;address == 0);
+<span style="color: #94BFF3;">#ifdef</span> ARENAS_USE_MMAP
+  address = mmap(<span style="color: #BFEBBF;">NULL</span>, ARENA_SIZE, PROT_READ|PROT_WRITE,
+                 MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+  err = (address == MAP_FAILED);
+<span style="color: #94BFF3;">#else</span>
+  address = malloc(ARENA_SIZE);
+  err = (address == 0);
+<span style="color: #94BFF3;">#endif</span>
+  <span style="color: #F0DFAF; font-weight: bold;">if</span> (err) {
+    <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">The allocation failed: return NULL after putting the</span>
+<span style="color: #7F9F7F;">     * arenaobj back.</span>
+<span style="color: #7F9F7F;">     </span><span style="color: #5F7F5F;">*/</span>
+    arenaobj-&gt;nextarena = unused_arena_objects;
+    unused_arena_objects = arenaobj;
+    <span style="color: #F0DFAF; font-weight: bold;">return</span> <span style="color: #BFEBBF;">NULL</span>;
+  }
+  arenaobj-&gt;address = (<span style="color: #7CB8BB;">uptr</span>)address;
+
+  ++narenas_currently_allocated;
+
+  arenaobj-&gt;freepools = <span style="color: #BFEBBF;">NULL</span>;
+  <span style="color: #5F7F5F;">/* </span><span style="color: #7F9F7F;">pool_address &lt;- first pool-aligned address in the arena</span>
+<span style="color: #7F9F7F;">     nfreepools &lt;- number of whole pools that fit after alignment </span><span style="color: #5F7F5F;">*/</span>
+  arenaobj-&gt;pool_address = (<span style="color: #7CB8BB;">block</span>*)arenaobj-&gt;address;
+  arenaobj-&gt;nfreepools = ARENA_SIZE / POOL_SIZE;
+
+  assert(POOL_SIZE * arenaobj-&gt;nfreepools == ARENA_SIZE);
+
+  excess = (<span style="color: #7CB8BB;">uint</span>)(arenaobj-&gt;address &amp; POOL_SIZE_MASK);
+  <span style="color: #F0DFAF; font-weight: bold;">if</span> (excess != 0) {
+    --arenaobj-&gt;nfreepools;
+    arenaobj-&gt;pool_address += POOL_SIZE - excess;
+  }
+  arenaobj-&gt;ntotalpools = arenaobj-&gt;nfreepools;
+
+  <span style="color: #F0DFAF; font-weight: bold;">return</span> arenaobj;
+}
+</pre>
+</div>
+<ul class="org-ul">
+<li>如果 unused\<sub>arena\</sub><sub>objects</sub> 没有了，扩容成原来的两倍
+</li>
+<li>freepools 指向 null
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+	</article>
+    </body>
+</html>
