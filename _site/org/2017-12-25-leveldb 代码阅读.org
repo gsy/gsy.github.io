@@ -1,0 +1,331 @@
+#+BEGIN_HTML
+---
+layout: post
+title: LevelDB 代码阅读
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+#+OPTIONS: tex:t
+#+STARTUP: latexpreview
+
+* LevelDB 的数据结构
+** SSTable
+   SSTable 是 sorted string table 的意思。sorted string table 是一系列 key-value pair 构成的文件，根据 key 的大小顺序排列。如果文件很大，可以在文件的开头或者单独的文件里面构建出 key:offset 这样的索引结构。图示：
+   #+HEADER: :file sstable.png :imagemagick yes
+   #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+   #+HEADER: :fit yes :iminoptions -density 600
+   #+BEGIN_SRC latex
+     \usetikzlibrary{matrix, positioning}
+     \tikzset{
+       table/.style={
+         matrix of nodes,
+         nodes in empty cells,
+         nodes={draw, anchor=center, text centered, align=center, text width=0.8cm, minimum width=1cm, minimum height=0.6cm},
+         every even column/.style={nodes={fill=grey!40}},
+         column 2/.style={nodes={minimum width=1.5cm}},
+         column 6/.style={nodes={minimum width=2.5cm}},
+         row sep=-\pgflinewidth,
+         column sep=-\pgflinewidth,
+       }
+     }
+     \begin{tikzpicture}
+       \matrix[table] (index) {
+         key & offset \\
+         key & offset \\
+         ... & ... \\
+       };
+       \node[anchor=south west] at (index.north west) {Index};
+
+       \matrix[table, right=of index] (sstable) {
+         key & value & key & value & key & value & ... & ... \\
+       };
+       \node[anchor=south west] at (sstable.north west) {SSTable file};
+     \end{tikzpicture}
+   #+END_SRC
+
+   #+BEGIN_HTML
+   <img alt="sstable.png" src="/assets/img/sstable.png" />
+   #+END_HTML
+   - SSTable 是 key-value 结构， key 是 string 类型，value 也是 string 类型
+   - SSTable 是 immutable 的，只有写入操作，没有更新操作
+   - SSTable 是持久化的，内部对应着一个 data file，数据都写到这个 file 里面
+   - SSTable 可以允许多个 thread 并发访问，不需要额外的同步机制
+** SSTable file 结构
+   #+HEADER: :file leveldb_file.png :imagemagick yes
+   #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+   #+HEADER: :fit yes :iminoptions -density 600 :imoutoptions -geometry 600
+   #+BEGIN_SRC latex
+     \usetikzlibrary{matrix, decorations.pathreplacing}
+     \begin{tikzpicture}[decoration=brace]
+       \tikzset{
+         array/.style={
+           matrix of nodes,
+           nodes={draw, line width=1pt, anchor=center, text centered, align=center, text width=3cm, minimum width=1.5cm, minimum height=1cm},
+           row sep=-\pgflinewidth,
+           column sep=-\pgflinewidth,
+           nodes in empty cells,
+         }
+       }
+       \matrix (m) [array] {
+         data block 1 \\
+         \ldots \\
+         data block N \\
+         meta block 1 \\
+         \ldots \\
+         meta block K \\
+         metaindex block \\
+         index block \\
+         Footer \\
+       };
+
+       \draw[decorate,thick] (m-1-1.east) -- node[right=4pt] {data block} (m-3-1.east);
+       \draw[decorate,thick] (m-4-1.east) -- node[right=4pt] {meta block} (m-6-1.east);
+     \end{tikzpicture}
+    #+END_SRC
+   #+BEGIN_HTML
+   <img alt="sstable_file.png" src="/assets/img/leveldb_file.png"/>
+   #+END_HTML
+   - Footer: 固定的信息，保存在 table file 的结尾
+   - Footer 包含了 index block 和 metaindex block 的指针
+   - data block: (key, value) 按照 key 的大小顺序保存在 data block 中
+   - metaindex block: 保存的是 meta name -> meta block 的映射关系
+   - index block 保存的是两个 block 之间的分隔 key，key >= last key of data block i && key < first key of data block i+1
+
+*** open SSTable 文件
+    - 从文件结尾开始读取 Footer，Footer 的大小是固定的
+    - 根据 Footer 中的 index block 指针，读取 index block
+    - 根据 Footer 中的 metaindex block 指针，读取 metaindex block，构建 filter
+    - 对外提供服务
+
+*** key 查找
+    - 通过 index block 以及 filter 查找到 key 对应的 data block
+    - 读取 data block，查找到对应的 record
+
+*** SSTable builder add key
+    - 只能按照 key 从小到大的顺序添加
+    - 添加 key 到 index block
+    - 添加 key 到 filter block
+    - (key,value) pair 写入 data block
+    - 如果 SSTable 的数据大于一个 data block，就 Flush 到硬盘
+
+*** SSTable builder finish
+    - 顺序写入 filter block, metaindex block, index block 和 footer
+
+** Block 的数据结构
+   - key-value 构成一个 entry, key 的前缀是通过压缩的，可以节省空间。根据 key 的大小顺序排列。
+     #+HEADER: :file entry.png :imagemagick yes
+     #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+     #+HEADER: :fit yes :iminoptions -density 600
+     #+BEGIN_SRC latex
+        \usetikzlibrary{
+          shapes,% for the rectangle
+          chains,% provides the chains
+          matrix,
+          scopes}
+        \tikzset{
+          array/.style={
+            matrix of nodes,
+            nodes={draw, minimum size=7mm},
+            row sep=-0.5mm,
+            column sep=-\pgflinewidth,
+            nodes in empty cells,
+            row 1/.style={nodes={draw=none, fill=none, minimum size=5mm}},
+          },
+          pointer/.style={
+            dashed,
+            draw=red!80,
+          }
+        }
+
+        \begin{tikzpicture}
+          \matrix[array] (array) {
+            varint32 & varint32 & varint32 &  &  \\
+            shared bytes& unshared bytes  & value length  & key delta  & value \\};
+          \draw[->, pointer] (array-1-4.north) to[bend right=45] (array-2-2.north);
+          \draw[->, pointer] (array-1-5.north) to[bend right=45] (array-2-3.north);
+          \draw (array-1-1.north) -- ++(90:3mm) node [above] (first) {\tiny{0 for start point}};
+          \node [above=1.5cm, align=flush center,text width=8cm] at (array) {Entry};
+        \end{tikzpicture}
+     #+END_SRC
+
+     #+BEGIN_HTML
+     <img alt="entry.png" src="/assets/img/entry.png" />
+     #+END_HTML
+
+   - 每隔 K 个 entry，就重新开始新一轮 key 的前缀压缩。block 使用 restarts 数组保存所有前缀压缩 key 的起点
+     #+HEADER: :file block.png :imagemagick yes
+     #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+     #+HEADER: :fit yes :iminoptions -density 600 :imoutoptions -geometry 600
+     #+BEGIN_SRC latex
+        \usetikzlibrary{matrix}
+        \begin{tikzpicture}
+          \tikzset{
+            array/.style={
+              matrix of math nodes,
+              nodes={draw, fill=none, minimum size=7mm},
+              nodes in empty cells,
+              row sep=1em,
+              column sep = -\pgflinewidth,
+              row 1 column1/.style={draw=red, fill=red},
+            },
+            start point/.style={draw=red, circle},
+          }
+
+          \matrix (m) [array]
+          {
+            \node[draw=none,fill=none] (restarts) {restarts};  & &   &  &  \\
+            \node[draw=none,fill=none] (entries) {entries}; & \node[draw,fill=red!50] (restart1) {1}; & 2 & 3 & \node[draw,fill=red!50] (restart2) {4}; \\
+          };
+
+          \draw[->] (m-1-2.south) -- (restart1.north);
+          \draw[->] (m-1-3.south) -- (restart2.north);
+        \end{tikzpicture}
+
+      #+END_SRC
+     #+BEGIN_HTML
+     <img alt="block.png" src="/assets/img/block.png" />
+     #+END_HTML
+*** block 的编码
+    block 的 key,value 都是 string 类型。
+    - 为了保证兼容性，使用小端字节序 (little-end byte order)
+    - int32 和 int64 转换成 string 类型保存
+      - 有定长和变长两种方式
+
+*** block 的读接口
+    - 读取的方式是倒着读，读 footer，根据 footer 中的指针找到 index block 和 meta block 的开始位置，读取 index block 和 meta block
+*** block 的写接口
+    - block 的写是顺序写，先写 data block，然后写 meta block，index block 和 metaindex block。最后所有信息放在 footer
+
+** MemTable 数据结构
+   - MemTable 提供了 Get, Put 接口
+   - MemTable 的写的单位是 WriteBatch，都是批量写入
+   - 内部维护一个 SkipList 作为 table
+*** Get 接口
+    - key + sequence number + type 去查找对应的 value
+*** Add 接口
+    - (key + sequence nubmer + type, value)
+    - 存储格式
+      #+HEADER: :file memtable_item.png :imagemagick yes
+      #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+      #+HEADER: :fit yes :iminoptions -density 600
+      #+BEGIN_SRC latex
+        \usetikzlibrary{matrix, positioning}
+        \tikzset{
+          table/.style={
+            matrix of nodes,
+            nodes in empty cells,
+            nodes={draw, anchor=center, text centered, align=center, text width=2.8cm, minimum width=2.5cm, minimum height=1cm},
+            row sep=-\pgflinewidth,
+            column sep=-\pgflinewidth,
+          }
+        }
+        \begin{tikzpicture}
+          \matrix[table] (item) {
+            key size  & key & {sequence number \\ and type(tag)} & value size & value \\
+          }
+        \end{tikzpicture}
+      #+END_SRC
+    #+BEGIN_HTML
+    <img alt="memtable_item.png" src="/assets/img/memtable_item.png" />
+    #+END_HTML
+
+    - 底下存储为 skip list，将整个 encoding 的 string 插入到 skip list 中
+
+* LevelDB - Put
+  #+HEADER: :file leveldb_put.png :imagemagick yes
+  #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+  #+HEADER: :fit yes :iminoptions -density 600
+  #+BEGIN_SRC latex
+    \usetikzlibrary{matrix, positioning, shapes.geometric}
+    \tikzset{
+      table/.style={
+        matrix of nodes,
+        nodes={draw, anchor=center, text centered, align=center, text width=3.5cm, minimum width=1cm, minimum height=1cm},
+        row sep=1cm,
+        column sep=1cm
+      },
+      decision/.style = {draw, diamond, aspect=2},
+arrow/.style = {thick,->,>=stealth}
+    }
+    \begin{tikzpicture}
+      \matrix[table] (process) {
+        Make room for write & \\
+        Add record to log & \\
+        Logfile sync & \\
+        \node [decision] (success) {Success?}; & \\
+        Insert into memTable & Record error \\
+      };
+\draw [arrow] (process-1-1) -- (process-2-1);
+\draw [arrow] (process-2-1) -- (process-3-1);
+\draw [arrow] (process-3-1) -- (success.north);
+\draw [arrow] (success.south) -- node[anchor=east] {Yes}  (process-5-1);
+\draw [arrow] (success.east) -| node[anchor=south] {No} (process-5-2);
+    \end{tikzpicture}
+  #+END_SRC
+
+  #+BEGIN_HTML
+   <img alt="sstable.png" src="/assets/img/leveldb_put.png" />
+  #+END_HTML
+  - put 包括两步，记录 log 和写入 memTable
+  - log 记录成功才能写 memTable，log 的作用是从崩溃中恢复
+  - 写入 memTable 是将数据插入 skiplist
+
+* LevelDB - Get
+  #+HEADER: :file leveldb_get.png :imagemagick yes
+  #+HEADER: :results output silent :headers '("\\usepackage{tikz}")
+  #+HEADER: :fit yes :iminoptions -density 600
+  #+BEGIN_SRC latex
+    \usetikzlibrary{matrix, positioning, shapes.geometric}
+    \tikzset{
+      table/.style={
+        matrix of nodes,
+        nodes={draw, anchor=center, text centered, align=center, text width=3.5cm, minimum width=1cm, minimum height=1cm},
+        row sep=1cm,
+        column sep=1cm
+      },
+      decision/.style = {draw, diamond, aspect=2},
+      arrow/.style = {thick,->,>=stealth}
+    }
+    \begin{tikzpicture}
+      \matrix[table] (process) {
+        Search key in MemTable \\
+        Search key in Immutable MemTable \\
+        {Seach files in $level_0$} \\
+        {Binary search file in $level_i, \forall{i>1}$} \\
+      };
+
+      \draw [arrow] (process-1-1) -- (process-2-1);
+      \draw [arrow] (process-2-1) -- (process-3-1);
+      \draw [arrow] (process-3-1) -- (process-4-1);
+    \end{tikzpicture}
+  #+END_SRC
+  #+BEGIN_HTML
+  <img alt="leveldb_get.png" src="/assets/img/leveldb_get.png" />
+  #+END_HTML
+  - 现在 MemTable 和 Immutable MemTable 中找 key
+  - 如果找不到，到 SSTable 中寻找
+  - level_0 的 key 有重复的，所以要全部寻找，level > 1 时不同 SSTable 的 key 不会重叠，可以使用二分查找
+* LevelDB - Compaction
+** 什么时候压缩
+   后台启动线程执行定期的 compaction 或者手动指定某个 key range 进行 compaction
+
+** Minor Compaction
+    当有 immutable memtable 时，将 immutable memtable 写入 level0 的 SSTable。这个过程是 minor compaction
+
+** Major Compaction
+   - level > 1 时找出 level 和 level+1 有重叠 key 的两个文件进行合并
+   - 主要的执行路径 PickCompaction() -> DoCompactionWork() -> InstallCompactionResults()
+   - PickCompaction
+     1. 根据 level 中所有文件 size 占总配额的多少或者 seek 次数找到 level 及该 level 的一个文件 f_1 进行 compact。
+     2. 在 level+1 找到跟 f_1 有重叠的文件 f_2
+   - DoCompactionWork
+     1. 根据 f_1 和 f_2 构建 NewMergingIterator。MergingIterator 对内部的多个 iterator 做了多路 merge，next() 会给出内部 iterator key 最小的一个
+     2. 遍历，收集第一次出现的 key，删除标记为 delete 并且过期的 key
+     3. 使用 builder 将 key 添加到 SSTable。因为 level 和 level + 1 都是有序的，所以依照遍历的数据添加的 key 也是有序的
+   - InstallCompactionResults
+     1. 将新的 SSTable file 加入到 level + 1 的 edit version 中
+
+* 参考资料
+   - https://www.igvita.com/2012/02/06/sstable-and-log-structured-storage-leveldb/
+   - http://www.benstopford.com/2015/02/14/log-structured-merge-trees/
+   - https://stackoverflow.com/questions/33427916/why-table-and-tablebuilder-in-leveldb-use-struct-rep

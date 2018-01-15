@@ -1,0 +1,150 @@
+---
+layout: post
+title: The Log-Structured Merge-Tree
+---
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 随机读写和顺序读写的物理特性</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> HDD</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>通过磁头移动和盘片旋转来读取数据，磁头移动到读写位置开始需要花费的时间称为寻道时间。寻道时间大概是 10ms 级别
+</li>
+<li>随机读写需要更多的寻道，因此机械硬盘的随机读写性能比顺序读写性能差
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> SSD</h3>
+<div class="outline-text-3" id="text-1-2">
+<ul class="org-ul">
+<li>SSD 的内部存储介质是 NAND Flash, 通过高压改变晶体管的状态来表示二进制的0或者1
+</li>
+<li>SSD 的最小读写单元是 page，page 不能覆盖，即使只改变部分内容，也要重写一个新的 page，原来的 page 标志成脏页，通过垃圾回收机制释放空间。脏页通过高压清空，但是清空的粒度不是一个 page，而是多个 page 组成的 block
+</li>
+<li>SSD 内部使用 mapping table 记录逻辑地址到物理地址的关系，所以读取速度很快。
+</li>
+<li>SSD 的随机写性能不如顺序写，原因是
+<ul class="org-ul">
+<li>随机写更可能将数据分散写到不同的 block，而数据清理的单位是 block，也就是说随机写的垃圾回收涉及到更多的 block，而且这些 block 中有的 page 是脏的，有个 page 是有效的。
+</li>
+<li>垃圾回收的过程是将有效的 page 读出，找到一个新的空闲的 block 写入，然后再清空旧的 block，这样有写放大。
+</li>
+<li>顺序写通常整个 block 都是脏的，回收起来简单很多
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Log Structure Merge-Tree</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+LSM 是一种数据结构，利用了磁盘的顺序写比随机写性能好的特性，数据通过 append only 的方式写入文件。因为日志文件通常是这种方式写入，所以称为 log structure。同时将数据模型看成是冷热数据，有的数据是频繁更改的，要放到内存中，有的数据很少改动，适合放到磁盘上。当内存中的数据超过了一个阈值的时候，就推到磁盘中。因为通过 append only 的方式写入文件，所以更新和删除操作会导致有的数据失效，这样就要引入合并操作。这是这个数据结构的名字由来。
+</p>
+
+<p>
+日志文件有一个问题是怎么支持随机读，以及怎样支持范围查询。有几种方式可以实现
+</p>
+<ol class="org-ol">
+<li>文件本身按照 key 的顺序排列。如果数据大小是固定的，可以在文件中使用二分查找。如果不是，使用 page index + scan 方式查找
+</li>
+<li>使用 B+ 树索引结构，key 到 file offset 之间做索引
+</li>
+<li>使用额外的 hash 文件保存 key 到 file offset 之间的关联
+</li>
+</ol>
+<p>
+B+ 树和 hash 索引的更新的 replace-in-place 的，使用的是随机写。LSM 的算法跟上面这3种方法不同
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> LSM 的基本算法</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+LSM 不是使用一个大的 index file 去索引全部数据。而是使用多个 index file。file 的性质：
+</p>
+<ul class="org-ul">
+<li>file 在写入之前先排序，保证读取时可以使用搜索。
+</li>
+<li>file 是 immutable 的，创建完成之后就不会更新，数据的更新写入新的 file 里
+</li>
+<li>读取数据遍历全部的文件
+</li>
+<li>通过定时地 merge file 中的数据以减少 file 的数量
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-2-1-1" class="outline-4">
+<h4 id="sec-2-1-1"><span class="section-number-4">2.1.1</span> LSM 的写入</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<ul class="org-ul">
+<li>更新先在内存的一个 buffer 中排序。使用红黑树等数据结构保证 key 有序
+</li>
+<li>buffer 对应着硬盘的一个 memTable 文件，memTable 作为 write-ahead-log 保证崩溃后可以从中恢复
+</li>
+<li>当 memTable 文件被填满了，就要 flush 到硬盘中。当数据不断写入，重复执行这个 memTable -&gt; file 的过程，file 积累越来越多
+</li>
+<li>数据的更新和删除导致有的文件中的数据是无效的，可以通过 compaction 将这些文件压缩，减少 file 的数量。file 是有序的，使得 merge 过程很高效
+</li>
+<li>写入的特性是：batch, sequential, append only
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-1-2" class="outline-4">
+<h4 id="sec-2-1-2"><span class="section-number-4">2.1.2</span> LSM 的读取</h4>
+<div class="outline-text-4" id="text-2-1-2">
+<ul class="org-ul">
+<li>现在内存 buffer 中查找
+</li>
+<li>如果没有找到，按照 file 创建从新到旧的顺序依次查找。随着文件数目增多，读取速度变慢
+</li>
+<li>为了加快每个文件的 scan 速度，增加索引。比如在内存中维护 page-index，找到 page 之后在从那之后开始查找。leveldb 在文件的结尾记了 block-index
+</li>
+<li>compaction 减少所有文件的数量，对于读取来说也是非常重要的
+</li>
+<li>使用 Bloom filter 去判断某个 key 是不是可能包含在某个文件里面
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-1-3" class="outline-4">
+<h4 id="sec-2-1-3"><span class="section-number-4">2.1.3</span> LSM 的 compaction</h4>
+<div class="outline-text-4" id="text-2-1-3">
+</div><div id="outline-container-sec-2-1-3-1" class="outline-5">
+<h5 id="sec-2-1-3-1">base compaction</h5>
+<div class="outline-text-5" id="text-2-1-3-1">
+<p>
+每个文件存储的数据到达一定阈值时，跟其他文件 merge 形成更大的文件。比如文件可以记录的数据为10行，最多保存5个这样的文件，当5个文件被填满时，执行 merge，形成一个包含50行数据的大文件。这个过程持续进行，当积累到5个50行数据的文件时，再 merge 形成一个包含250行数据的文件。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-1-3-2" class="outline-5">
+<h5 id="sec-2-1-3-2">levelled compaction</h5>
+<div class="outline-text-5" id="text-2-1-3-2">
+<p>
+不是根据 file 的大小进行 compaction，而是分层 compaction
+</p>
+<ul class="org-ul">
+<li>同一层的 file 之间的 key 是不重叠的，在某层找一个特定的 key 只要扫描一个 file。第1层是个意外，key 可能再多个 file 中存在
+</li>
+<li>当一层的文件被填满后，只有一个文件被挑选出来跟下一层的文件进行 merge
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>

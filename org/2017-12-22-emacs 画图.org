@@ -92,7 +92,7 @@ title: emacs 使用 tikz 画图
       \end{tikzpicture}
     #+END_SRC
     #+BEGIN_HTML
-      <img alt="line.png" src="/assets/img/path1.png"/>
+    <img alt="line.png" src="/assets/img/path1.png"/>
     #+END_HTML
 
 *** 换坐标

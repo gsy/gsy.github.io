@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+    <title>Innodb 存储引擎读书笔记</title>
+    <!-- link to main stylesheet -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+
+    
+    <body>
+	<article class="content">
+	    <h1 class="title">
+		<a href="" title="Innodb 存储引擎读书笔记">Innodb 存储引擎读书笔记</a>
+	    </h1>
+	    <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> innodb 的特性</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>插入缓存 (Insert Buffer)。缓存二级索引页。因为二级缓存不是有序的，所以是随机写，为了减少磁盘的范围次数，将二级索引页缓存起来。满足以下两个条件的时候使用插入缓存
+<ul class="org-ul">
+<li>索引是二级索引
+</li>
+<li>索引不是唯一索引
+</li>
+</ul>
+</li>
+<li>doublewrite buffer
+<blockquote>
+<p>
+The doublewrite buffer is a storage area located in the system tablespace where InnoDB writes pages that are flushed from the InnoDB buffer pool, before the pages are written to their proper positions in the data file. Only after flushing and writing pages to the doublewrite buffer, does InnoDB write pages to their proper positions. If there is an operating system, storage subsystem, or mysqld process crash in the middle of a page write, InnoDB can later find a good copy of the page from the doublewrite buffer during crash recovery.
+</p>
+
+<p>
+Although data is always written twice, the doublewrite buffer does not require twice as much I/O overhead or twice as many I/O operations. Data is written to the doublewrite buffer itself as a large sequential chunk, with a single fsync() call to the operating system.
+</p>
+</blockquote>
+<ul class="org-ul">
+<li>从 innodb buffer pool 的内存页 flush 到磁盘文件之前，先 flush 到 doublewrite buffer. 为什么要写两次呢？
+</li>
+<li>page 的写入不是整页一次刷到磁盘上，如果在写入的过程中发生了故障，写入的部分页数据是无效的，称之为写失效 (partial page write)
+</li>
+<li>失效页不能 apply redo log。所以需要先创建一个副本。
+</li>
+</ul>
+</li>
+<li>自适应哈希 (adaptive hash index)
+<ul class="org-ul">
+<li>根据访问的模式和频率为某些页创建 hash index
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> innodb 的存储模型</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>innodb 的存储模型使用 spaces 这个概念，在 mysql 的上下文中，又称为 tablespaces
+</li>
+<li>一个「存储空间」(space) 由多个物理文件组成，被当成一个逻辑文件看待
+</li>
+<li>每个 space 有一个32位的 space id. system space 的 id 固定为 0, system space 记录的是 innodb 本身需要的一些信息
+</li>
+<li>innodb 为每个 table 创建一个 .idb 文件
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> pages</h3>
+<div class="outline-text-3" id="text-2-1">
+<ul class="org-ul">
+<li>一个 space 有 pages 组成，一个 page 的大小通常是 16kb，space 为每个 page 分配一个32位的 page number, 是距离 space 开头的 offset。比如，page 0 在文件中的 offset 是 0，page 1 的 offset 是 16384。
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-2-1-1" class="outline-4">
+<h4 id="sec-2-1-1"><span class="section-number-4">2.1.1</span> page overview</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<div class="figure">
+<img alt="innodb_page.png" src="/assets/img/innodb_page.png" />
+</div>
+</div>
+</div>
+<div id="outline-container-sec-2-1-2" class="outline-4">
+<h4 id="sec-2-1-2"><span class="section-number-4">2.1.2</span> FIL header/Trailer</h4>
+<div class="outline-text-4" id="text-2-1-2">
+<div class="figure">
+<img alt="page_header.png" src="/assets/img/innodb_page_header.png" />
+</div>
+<ul class="org-ul">
+<li>page type 存在 header 中，表明 page data 中的数据该如果解析。不同的 page 有不同的作用，有的用于事务，有的用于索引。
+</li>
+<li>checksum 用于校验这个 page 中的数据是不是完整的
+</li>
+<li>previous page 和 next page 在构建 B+ 树中是有用的
+</li>
+<li>最后修改页的 log sequence number 记录在 header
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2-1-3" class="outline-4">
+<h4 id="sec-2-1-3"><span class="section-number-4">2.1.3</span> system space</h4>
+<div class="outline-text-4" id="text-2-1-3">
+<div class="figure">
+<img alt="system_space.png" src="/assets/img/innodb_system_space.png" />
+</div>
+
+<ul class="org-ul">
+<li>记录了一些系统级别重要的空间的指针信息，比如 insert buffer, transaction system, data directory。
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2-1-4" class="outline-4">
+<h4 id="sec-2-1-4"><span class="section-number-4">2.1.4</span> .ibd file</h4>
+<div class="outline-text-4" id="text-2-1-4">
+<div class="figure">
+<img alt="file_per_table.png" src="/assets/img/innodb_file_per_table.png" />
+</div>
+
+<ul class="org-ul">
+<li>记录聚簇索引和二级索引 root page
+</li>
+<li>构建 B+ 树用到的 node page 和 leaf page
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> innodb 的索引</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li>每张表都有一个 primary key, 如果 create table 的时候没有创建 primary key，会使用第一个非 null 的 unique key 作为 primary key. 如果非 null 的 unique key 也没有，innodb 会创建一个隐藏48位的字段作为 primary key。所以建表的时候一定要指定 primary key, 否则隐藏字段用不上还占用6字节空间
+</li>
+<li>行数据以 primary key field 作为 key，其他字段以及 mvcc 用到的数据作为 value 存在一个 index structure 中。称为聚簇索引
+</li>
+<li>二级索引的结构跟聚簇索引的结构相同，但是 value 是指向 primary key page 的指针
+</li>
+<li>page 里面的 record 组成单向链表，page header 中保存了 infimum record 和 supremum record 两个指针，infimum record 的 next pointer 指向这个页里面最小的记录，key 最大的记录的 next pointer 指向 supremum record
+</li>
+<li>innodb 的索引结构是 B+ 树，B+ 树好处是当数据不能全部放到内存里面，只需要少数几次磁盘读取就可以获取到任意数据。磁盘读取的次数跟 B+ 树的高度相同，B+ 树的高度随着数据增长缓慢增高，所以 B+ 树作为索引扩展性很好
+</li>
+<li>B+ 树开始于一个 root page, page 分成叶子页和非叶子页。叶子页存储数据，非叶子页指向其他非叶子页或者叶子页。
+</li>
+<li>叶子页的 record 存储 key 和对应的数据，非叶子页存储的是下一页的最小的 key 及下一页的 page number
+</li>
+<li>同一层的 page 组成双向链表
+</li>
+<li>B+ 树的数据查找使用二分搜索，要判断一个 page 是否包含某个 record，要遍历 record 的单向链表，这样效率不高。在 page 底部有一个 directory 数组，将4-8个 record 当成一组，一个 directory slot 负责一组 record。这个数组是根据 record 的大小顺序排列的，可以在其中进行二分查找。
+<ul class="org-ul">
+<li>从 B+树 root 节点开始查找。使用 page directory 中使用二分查找，找到一个最大值小于 search key 的 slot
+</li>
+<li>从找到的 slot 开始，顺着 slot 的 record 组成的单向链表线性搜索，找到一个最大值小于 search key 的 record
+</li>
+<li>如果是叶子页，查找结束，返回 record 结果。如果是非叶子页，将这个 record 指向的叶子页加载到内存，递归地进行搜索。
+</li>
+</ul>
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> 一颗 B+ 树</h3>
+<div class="outline-text-3" id="text-3-1">
+<div class="figure">
+ <img alt="file_per_table.png" src="/assets/img/B_plus_tree.png" />
+ </div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> innodb 的 undo log</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+innodb 实现了 mvcc，不同的用户能看到不同的数据版本。mvcc 是通过 undo log 和 history system 实现的
+</p>
+</div>
+<div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> undo log</h3>
+<div class="outline-text-3" id="text-4-1">
+<ul class="org-ul">
+<li>当有记录被修改的时候，创建一条 undo log，记录当前 record 的内容
+</li>
+<li>record 的多次修改组成链表。例如：
+<div class="figure">
+<img alt="" src="/assets/img/undo_log.png" />
+</div>
+</li>
+
+<li>事务在修改数据的时候，是真的改动了 record 记录的内容。但是不同的事务能看到不同的视图。为了实现这点，事务在读取 record 之后，要先 revert 到这个事务允许看到的版本
+</li>
+<li>record 维护了2个跟 undo log 有关的字段
+<ul class="org-ul">
+<li>DB\<sub>TRX\</sub><sub>ID</sub>: 最近一个 update 或者 insert record 的事务 id
+</li>
+<li>DB\<sub>ROLL\</sub><sub>PTR</sub>: 指向 undo log record
+</li>
+</ul>
+</li>
+<li>当有一个事务删除数据时，并不能物理上删除。因为其他的事务可能还在旧版本里面读。所以先标记成 delete，后台执行 purge 进程负责删除这些数据
+</li>
+<li>purge 进程主要完成两件事情
+<ul class="org-ul">
+<li>真·删除标记为要删除的 record
+</li>
+<li>回收 undo log 页
+</li>
+</ul>
+</li>
+<li>回滚版本是有开销的，所以长期执行的 transaction 和 query 对性能是有影响的，表现在两个方面：
+<ul class="org-ul">
+<li>读取变慢，因为读取完数据之后，还用 apply undo log 恢复到很早期的版本
+</li>
+<li>阻碍 purge 进程清理数据，导致 undo log 数据增长。
+</li>
+</ul>
+</li>
+<li>二级索引的更新是标记删除，然后创建新纪录。删除是标记删除，等待 purge 进程执行。
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> innodb 的事务与锁</h2>
+<div class="outline-text-2" id="text-5">
+</div><div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1"><span class="section-number-3">5.1</span> 事务的作用</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+事务是为了实现一组操作同时进行，保证满足 ACID 4个性质：
+</p>
+<ul class="org-ul">
+<li>原子性 (atomicity): 一组操作全部成功或者全部失败
+</li>
+<li>一致性 (consistency): 从一个一致的状态出发，转换为下一个一致的状态
+</li>
+<li>隔离性 (isolation): 一个事务在提交前，所做的修改对其他事务不可见
+</li>
+<li>持久性 (durability): 数据能在经历宕机等故障之后恢复
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2"><span class="section-number-3">5.2</span> 事务的实现</h3>
+<div class="outline-text-3" id="text-5-2">
+<ul class="org-ul">
+<li>隔离性通过锁来实现
+</li>
+<li>持久性，正常状况下，将数据保存到磁盘保证持久性。问题是，在宕机时刻操作的数据怎么样保证也是持久化的？
+<ul class="org-ul">
+<li>修改数据的操作先生成一条 log, 在事务提交的时候，将 log 的数据刷到磁盘上。
+</li>
+<li>数据修改的内容写入磁盘，这步不一定发生在 commit 的时候，也就是说是异步的。
+</li>
+<li>在修改数据之前先记录日志的方法称为 Write-Ahead Logging (WAL)
+</li>
+</ul>
+</li>
+<li>原子性怎么保证？
+<ul class="org-ul">
+<li>正常的操作记录到 redo log 中，将一个相反的操作记录到 undo log 中
+</li>
+<li>如果事务需要回滚，按照相反的顺序执行 undo log 中的 command
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-3" class="outline-3">
+<h3 id="sec-5-3"><span class="section-number-3">5.3</span> 事务的隔离级别</h3>
+<div class="outline-text-3" id="text-5-3">
+<ul class="org-ul">
+<li>READ UNCOMMITTED
+</li>
+<li>READ COMMITTED
+</li>
+<li>REPEATABLE READ: innodb 的默认隔离级别
+</li>
+<li>SERIALIZABLE： 分布式事务一定要设置到这个级别(为什么？)
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-4" class="outline-3">
+<h3 id="sec-5-4"><span class="section-number-3">5.4</span> 隔离级别和锁</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+用例子说明。假设有表结构及测试数据
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sql"><span style="color: #F0DFAF; font-weight: bold;">CREATE</span> <span style="color: #F0DFAF; font-weight: bold;">TABLE</span> `t` (
+`a` <span style="color: #7CB8BB;">int</span>(11) <span style="color: #F0DFAF; font-weight: bold;">NOT</span> <span style="color: #F0DFAF; font-weight: bold;">NULL</span> <span style="color: #F0DFAF; font-weight: bold;">DEFAULT</span> <span style="color: #CC9393;">'0'</span>,
+<span style="color: #F0DFAF; font-weight: bold;">PRIMARY</span> <span style="color: #F0DFAF; font-weight: bold;">KEY</span> (`a`)
+) ENGINE=InnoDB <span style="color: #F0DFAF; font-weight: bold;">DEFAULT</span> CHARSET=utf8;
+
+<span style="color: #F0DFAF; font-weight: bold;">insert</span> <span style="color: #F0DFAF; font-weight: bold;">into</span> <span style="color: #F0DFAF; font-weight: bold;">table</span> t <span style="color: #F0DFAF; font-weight: bold;">insert</span> 1;
+<span style="color: #F0DFAF; font-weight: bold;">insert</span> <span style="color: #F0DFAF; font-weight: bold;">into</span> <span style="color: #F0DFAF; font-weight: bold;">table</span> t <span style="color: #F0DFAF; font-weight: bold;">insert</span> 2;
+<span style="color: #F0DFAF; font-weight: bold;">insert</span> <span style="color: #F0DFAF; font-weight: bold;">into</span> <span style="color: #F0DFAF; font-weight: bold;">table</span> t <span style="color: #F0DFAF; font-weight: bold;">insert</span> 3;
+<span style="color: #F0DFAF; font-weight: bold;">insert</span> <span style="color: #F0DFAF; font-weight: bold;">into</span> <span style="color: #F0DFAF; font-weight: bold;">table</span> t <span style="color: #F0DFAF; font-weight: bold;">insert</span> 7;
+<span style="color: #F0DFAF; font-weight: bold;">insert</span> <span style="color: #F0DFAF; font-weight: bold;">into</span> <span style="color: #F0DFAF; font-weight: bold;">table</span> t <span style="color: #F0DFAF; font-weight: bold;">insert</span> 8;
+</pre>
+</div>
+<ul class="org-ul">
+<li>时间序示意图
+<div class="figure">
+<img alt="" src="/assets/img/tx_isolation_lock.png" />
+</div>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>开启两个 session。sessionA 查询 id=1 的数据，sessionB 修改 id=1 的数据
+<ul class="org-ul">
+<li>READ-COMMITED 级别下，sessionB commit 之后，sessionA 可以读到 sessionB 修改的数据。在上图的时间点2处，sessionA 仍能读到 a=1 的记录，到时间点3时，查询结果是空集。
+</li>
+<li>REPEATABLE-READ 级别下，事务的多次读取读到的是同样的数据。时间点1，2，3都能读到 a=1 的记录
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-5" class="outline-3">
+<h3 id="sec-5-5"><span class="section-number-3">5.5</span> 锁的类型</h3>
+<div class="outline-text-3" id="text-5-5">
+<ul class="org-ul">
+<li>共享锁 (share lock, S 锁)，允许事务读取一行数据
+</li>
+<li>排它锁 (exclude lock, X 锁)，允许事务删除或者更新一行数据
+</li>
+<li>意向锁
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-6" class="outline-3">
+<h3 id="sec-5-6"><span class="section-number-3">5.6</span> 锁的算法</h3>
+<div class="outline-text-3" id="text-5-6">
+<ul class="org-ul">
+<li>Record Lock: 单个行记录上的锁
+</li>
+<li>Gap Lock: 间隙锁，锁住一个范围，但不包含记录本身
+</li>
+<li>Next Key Lock: Gap Lock + Record Lock，锁住一个范围及记录。RR 隔离级别下默认使用这种锁算法。
+</li>
+<li>Next Key Lock 的一个例子
+<div class="figure">
+<img alt="" src="/assets/img/next_key_lock.png" />
+</div>
+
+<ul class="org-ul">
+<li>sessionB 在时间点1处阻塞，知道时间点2处 sessionA commit 释放锁后才能继续执行
+</li>
+<li>如果 sessionA 的查询是点查，那么不会锁住间隙。例如 select * from t where a = 7 只会锁住 7 这个 record
+</li>
+<li>sessionA 读到 sessionB 提交之后的数据称为不可重复读，两次读取之间读到的数据不一致。next key lock 是用来解决不可重复读问题的。
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> 引用</h2>
+<div class="outline-text-2" id="text-6">
+<ul class="org-ul">
+<li><a href="https://blog.jcole.us/2014/04/16/the-basics-of-the-innodb-undo-logging-and-history-system/">https://blog.jcole.us/2014/04/16/the-basics-of-the-innodb-undo-logging-and-history-system/</a>
+</li>
+<li>「innodb 存储引擎」
+</li>
+</ul>
+</div>
+</div>
+
+	</article>
+    </body>
+</html>
