@@ -1,0 +1,21 @@
+* prerequisite
+** pytorch
+   #+BEGIN_SRC sh
+     pip3 install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl
+     pip3 install torchvision
+   #+END_SRC
+
+** fastai
+   #+BEGIN_SRC sh
+   pip install fastai
+   #+END_SRC
+
+** jupyter
+   #+BEGIN_SRC sh
+   pip install jupyter
+   #+END_SRC
+
+* lesson-1: Image classification
+  #+BEGIN_SRC python
+    learn = ConvLearner(data, tvm.resnet34, metrics=accuracy)
+  #+END_SRC
