@@ -1,3 +1,14 @@
+#+BEGIN_HTML
+---
+layout: post
+title: Test Math
+---
+#+END_HTML
+#+OPTIONS: toc:nil
+#+OPTIONS: tex:t
+#+STARTUP: latexpreview
+
+
 * test math
   #+BEGIN_SRC latex
     \begin{equation}
