@@ -2,30 +2,23 @@
 <html>
     
     <head>
-    <title>Guang Guang's Blog</title>
-    <!-- link to main stylesheet -->
-    <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <title>Guang Guang's Blog</title>
+  <!-- link to main stylesheet -->
+  <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+  <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 </head>
 
     
     <body>
 
 	<header id="post-header">
-      
-    <!-- <nav>
-	 <a href="About Me">About Me</a>
-	 <a href="Home">Home</a>
-	 <a href="Category">Category</a>	
-	 <a href="Archieve">Archieve</a>
-	 </nav> -->
 
   <div id="hero">
       <a title="Home" href="/"><img id="logo" src="assets/img/totoro.jpg"/></a>
       <div id="title">
 	  <h1><span>Guang's Blog</span></h1>
-	  
+
 	  <div class="kicker">
 	      <div>那时我们有梦</div>
 	      <div>关于文学，关于爱情</div>
@@ -34,27 +27,137 @@
 	      <div>杯子碰到一起 </div>
 	      <div>都是梦破碎的声音</div>
 	  </div>
-      </div>      
+      </div>
   </div>
 
-  
-</header>
 
+</header>
 
 	
 		
 	<div class="posts">
     
-    <article class="post">     
+    <article class="post">
+	<h1 class="title">
+	    <a href="/2019/03/27/test-math.html" title="Test Math">Test Math</a>
+	</h1>
+	<h2 class="date">
+	    <span>Mar 27, 2019</span>
+	</h2>
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> test math</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
+$$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
+</p>
+
+
+	     </div>
+	     <a href="/2019/03/27/test-math.html" class="read-more">阅读更多</a> -->
+
+    </article>
+    
+    <article class="post">
+	<h1 class="title">
+	    <a href="/2019/01/05/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%BA%A2%E9%BB%91%E6%A0%91.html" title="数据结构之红黑树">数据结构之红黑树</a>
+	</h1>
+	<h2 class="date">
+	    <span>Jan 5, 2019</span>
+	</h2>
+
+	<!-- <div class="entry">
+	     <p>
+红黑树是一种自平衡二叉查找树，支持点查以及范围查询
+</p>
+
+
+	     </div>
+	     <a href="/2019/01/05/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%BA%A2%E9%BB%91%E6%A0%91.html" class="read-more">阅读更多</a> -->
+
+    </article>
+    
+    <article class="post">
+	<h1 class="title">
+	    <a href="/2018/11/17/tensorflow.html" title="tensorflow">tensorflow</a>
+	</h1>
+	<h2 class="date">
+	    <span>Nov 17, 2018</span>
+	</h2>
+
+	<!-- <div class="entry">
+	     <div id="outline-container-org508479c" class="outline-2">
+<h2 id="org508479c"><span class="section-number-2">1</span> 搭建 tensorflow 开发环境</h2>
+</div>
+<div id="outline-container-orgf57ca41" class="outline-2">
+<h2 id="orgf57ca41"><span class="section-number-2">2</span> 训练 mnist 数据集</h2>
+</div>
+<div id="outline-container-org755aa08" class="outline-2">
+<h2 id="org755aa08"><span class="section-number-2">3</span> 训练别的数据集</h2>
+</div>
+<div id="outline-container-orgbc973a3" class="outline-2">
+<h2 id="orgbc973a3"><span class="section-number-2">4</span> 训练公司的数据集</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>看起来使用的是 tensorflow 自带的模型去训练的，假设这个模型叫做 resnet
+<ul class="org-ul">
+<li>有人会改网络吗？</li>
+</ul></li>
+<li>手工标注的数据有什么作用呢？将框里面的数据减出来训练？</li>
+<li><p>
+训练的脚本命令
+</p>
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #6c71c4;">CUDA_VISIBLE_DEVICES</span>=2 python3 save_det_cls_model.py --detection_model_path=/home/wujiahong/ebest_cola/detection/output_inference_faster_rcnn_resnet50_1014_1 --classify_model_path=/home/wujiahong/ebest_cola/200_SKU_file/classification_log_10_14/  --export_dir=/home/wujiahong/ebest_cola/serving_model --version=1115
+</pre>
+</div></li>
+</ul>
+</div>
+</div>
+
+	     </div>
+	     <a href="/2018/11/17/tensorflow.html" class="read-more">阅读更多</a> -->
+
+    </article>
+    
+    <article class="post">
+	<h1 class="title">
+	    <a href="/2018/01/05/mysql-%E4%BA%8B%E5%8A%A1.html" title="Mysql 事务">Mysql 事务</a>
+	</h1>
+	<h2 class="date">
+	    <span>Jan 5, 2018</span>
+	</h2>
+
+	<!-- <div class="entry">
+	     <div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. tbd</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> tbd</h2>
+</div>
+
+	     </div>
+	     <a href="/2018/01/05/mysql-%E4%BA%8B%E5%8A%A1.html" class="read-more">阅读更多</a> -->
+
+    </article>
+    
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2018/01/05/innodb-%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0.html" title="Innodb 存储引擎读书笔记">Innodb 存储引擎读书笔记</a>
 	</h1>
 	<h2 class="date">
 	    <span>Jan 5, 2018</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> innodb 的特性</h2>
 <div class="outline-text-2" id="text-1">
 <ul class="org-ul">
@@ -73,21 +176,21 @@ The doublewrite buffer is a storage area located in the system tablespace where 
 </p>
 
 
-	</div>
-	<a href="/2018/01/05/innodb-%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2018/01/05/innodb-%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2018/01/02/python-gc.html" title="Python GC">Python GC</a>
 	</h1>
 	<h2 class="date">
 	    <span>Jan 2, 2018</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> 主要的 GC 算法</h2>
 <div class="outline-text-2" id="text-1">
 </div><div id="outline-container-sec-1-1" class="outline-3">
@@ -100,21 +203,21 @@ The doublewrite buffer is a storage area located in the system tablespace where 
 </div>
 
 
-	</div>
-	<a href="/2018/01/02/python-gc.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2018/01/02/python-gc.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2018/01/01/python-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.html" title="Python 内存管理">Python 内存管理</a>
 	</h1>
 	<h2 class="date">
 	    <span>Jan 1, 2018</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> python 内存管理</h2>
 <div class="outline-text-2" id="text-1">
 <p>
@@ -122,21 +225,21 @@ python 使用内存池来管理小块内存的申请和释放，大内存使用 
 </p>
 
 
-	</div>
-	<a href="/2018/01/01/python-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2018/01/01/python-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2017/12/25/leveldb-%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB.html" title="LevelDB 代码阅读">LevelDB 代码阅读</a>
 	</h1>
 	<h2 class="date">
 	    <span>Dec 25, 2017</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> LevelDB 的数据结构</h2>
 <div class="outline-text-2" id="text-1">
 </div><div id="outline-container-sec-1-1" class="outline-3">
@@ -177,21 +280,21 @@ SSTable 是 sorted string table 的意思。sorted string table 是一系列 key
 </div>
 
 
-	</div>
-	<a href="/2017/12/25/leveldb-%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2017/12/25/leveldb-%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2017/12/24/lsm-tree.html" title="The Log-Structured Merge-Tree">The Log-Structured Merge-Tree</a>
 	</h1>
 	<h2 class="date">
 	    <span>Dec 24, 2017</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> 随机读写和顺序读写的物理特性</h2>
 <div class="outline-text-2" id="text-1">
 </div><div id="outline-container-sec-1-1" class="outline-3">
@@ -231,21 +334,21 @@ SSTable 是 sorted string table 的意思。sorted string table 是一系列 key
 </div>
 
 
-	</div>
-	<a href="/2017/12/24/lsm-tree.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2017/12/24/lsm-tree.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2017/12/22/emacs-%E7%94%BB%E5%9B%BE.html" title="emacs 使用 tikz 画图">emacs 使用 tikz 画图</a>
 	</h1>
 	<h2 class="date">
 	    <span>Dec 22, 2017</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> 图片生成</h2>
 <div class="outline-text-2" id="text-1">
 <ul class="org-ul">
@@ -258,21 +361,21 @@ SSTable 是 sorted string table 的意思。sorted string table 是一系列 key
 </div>
 
 
-	</div>
-	<a href="/2017/12/22/emacs-%E7%94%BB%E5%9B%BE.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2017/12/22/emacs-%E7%94%BB%E5%9B%BE.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2017/12/21/spanner%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB.html" title="spanner 论文阅读">spanner 论文阅读</a>
 	</h1>
 	<h2 class="date">
 	    <span>Dec 21, 2017</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> spanner 是什么</h2>
 <div class="outline-text-2" id="text-1">
 <p>
@@ -292,21 +395,21 @@ google 开发的一个数据库。用于支持 scheme 在线变更，避免 msyq
 </div>
 
 
-	</div>
-	<a href="/2017/12/21/spanner%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2017/12/21/spanner%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2017/12/21/6.824-distributed-transactions.html" title="6.824 - Distributed Transactions">6.824 - Distributed Transactions</a>
 	</h1>
 	<h2 class="date">
 	    <span>Dec 21, 2017</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> Topics</h2>
 <div class="outline-text-2" id="text-1">
 <ul class="org-ul">
@@ -325,21 +428,21 @@ google 开发的一个数据库。用于支持 scheme 在线变更，避免 msyq
 </div>
 
 
-	</div>
-	<a href="/2017/12/21/6.824-distributed-transactions.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2017/12/21/6.824-distributed-transactions.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/21/wsgi.html" title="WSGI">WSGI</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 21, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1"><span class="section-number-2">1</span> wsgi是什么</h2>
 <div class="outline-text-2" id="text-1">
 <p>
@@ -355,173 +458,173 @@ WSGI是Web Server Gateway Interface的缩写。这个接口在web服务器和web
 <div class="org-src-container">
 
 
-	</div>
-	<a href="/2016/04/21/wsgi.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/21/wsgi.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/21/mergesort.html" title="归并排序算法 & winner tree">归并排序算法 & winner tree</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 21, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 归并排序是通常作为外部排序使用，如果排序文件很大，不能装载到内存里面排序，就分割成小文件，先将小文件排序，最后进行归并操作。归并排序是典型的分治算法，时间复杂度是O(nlogn)。
 </p>
 
 
-	</div>
-	<a href="/2016/04/21/mergesort.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/21/mergesort.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/17/python-zookeeper.html" title="分布式服务框架-zookeeper">分布式服务框架-zookeeper</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 17, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 zookeeper是一个分布式服务框架，它主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管理等。
 </p>
 
 
-	</div>
-	<a href="/2016/04/17/python-zookeeper.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/17/python-zookeeper.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/17/mysql-%E5%8D%95%E8%AF%AD%E5%8F%A5profile.html" title="Mysql-单语句Profile">Mysql-单语句Profile</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 17, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 当定位到慢查询时，还需要工具去查看到底在整个查询中发生了什么，以便有目的地优化。
 </p>
 
 
-	</div>
-	<a href="/2016/04/17/mysql-%E5%8D%95%E8%AF%AD%E5%8F%A5profile.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/17/mysql-%E5%8D%95%E8%AF%AD%E5%8F%A5profile.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/17/html%E5%AD%A6%E4%B9%A0.html" title="HTML基础">HTML基础</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 17, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 HTML Dom模型，tag &amp; attributes
 </p>
 
 
-	</div>
-	<a href="/2016/04/17/html%E5%AD%A6%E4%B9%A0.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/17/html%E5%AD%A6%E4%B9%A0.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/17/css-preprocessor.html" title="CSS Preprocessor">CSS Preprocessor</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 17, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 css是用于描述html元素的样式的，本身缺乏逻辑，当css文件随着时间推移变得庞大和复杂，难以管理的时候，程序员需要一种手段去应对book keeping的琐碎。这就是css preprocess切入的地方：不直接编辑css文件，而是提供一种抽象语法，加入编程元素，对文件进行一层预处理，然后生成css文件。这里主要介绍sass这个预处理器。  
 </p>
 
 
-	</div>
-	<a href="/2016/04/17/css-preprocessor.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/17/css-preprocessor.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/12/css-unit.html" title="CSS Unit">CSS Unit</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 12, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 css的计量单位分为绝对单位和相对单位
 </p>
 
 
-	</div>
-	<a href="/2016/04/12/css-unit.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/12/css-unit.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/10/%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83.html" title="前端开发环境搭建">前端开发环境搭建</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 10, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 搭建一个纯前端的开发环境。
 </p>
 
 
-	</div>
-	<a href="/2016/04/10/%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/10/%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/05/mysql%E6%8A%93%E5%8C%85.html" title="mysql抓包分析">mysql抓包分析</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 5, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 除了mysql的日志之外，可以通过抓包来观察mysql server的行为。这篇文章记录的是使用tcpdump来捕获发送到mysql server及mysql server发出的包，然后使用pt-query-digest工具分析数据。
 </p>
 
 
-	</div>
-	<a href="/2016/04/05/mysql%E6%8A%93%E5%8C%85.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/05/mysql%E6%8A%93%E5%8C%85.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/05/mysql_slow_log.html" title="mysql性能剖析之slow_log">mysql性能剖析之slow_log</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 5, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <p>
+
+	<!-- <div class="entry">
+	     <p>
 slow_log记录了mysql的慢查询，是分析性能的重要数据来源。
 </p>
 <div id="outline-container-sec-1" class="outline-2">
@@ -541,21 +644,21 @@ mysql使用long_query_time这个系统参数来定义慢查询的界限，比lon
 <div class="org-src-container">
 
 
-	</div>
-	<a href="/2016/04/05/mysql_slow_log.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/05/mysql_slow_log.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/04/04/mysql%E5%AE%89%E8%A3%85.html" title="ubuntu安装mysql">ubuntu安装mysql</a>
 	</h1>
 	<h2 class="date">
 	    <span>Apr 4, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
     <h2 id="sec-1">1. mysql安装</h2>
     <div class="outline-text-2" id="text-1">
 	<p>
@@ -564,21 +667,21 @@ mysql使用long_query_time这个系统参数来定义慢查询的界限，比lon
 	<div class="org-src-container">
 
 
-	</div>
-	<a href="/2016/04/04/mysql%E5%AE%89%E8%A3%85.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/04/04/mysql%E5%AE%89%E8%A3%85.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/03/24/css%E5%AD%A6%E4%B9%A0.html" title="css盒模型">css盒模型</a>
 	</h1>
 	<h2 class="date">
 	    <span>Mar 24, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
 <h2 id="sec-1">1. CSS Box Model</h2>
 <div class="outline-text-2" id="text-1">
 <p>
@@ -588,21 +691,21 @@ CSS 盒模型是 CSS 规范的一个模块，它定义了一个长方形的盒�
 </p>
 
 
-	</div>
-	<a href="/2016/03/24/css%E5%AD%A6%E4%B9%A0.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/03/24/css%E5%AD%A6%E4%B9%A0.html" class="read-more">阅读更多</a> -->
 
     </article>
     
-    <article class="post">     
+    <article class="post">
 	<h1 class="title">
 	    <a href="/2016/03/20/docker%E5%88%9D%E6%8E%A5%E8%A7%A6.html" title="Docker初接触">Docker初接触</a>
 	</h1>
 	<h2 class="date">
 	    <span>Mar 20, 2016</span>
 	</h2>
-	
-	<div class="entry">
-	    <div id="outline-container-sec-1" class="outline-2">
+
+	<!-- <div class="entry">
+	     <div id="outline-container-sec-1" class="outline-2">
     <h2 id="sec-1">docker安装</h2>
     <div class="outline-text-2" id="text-1">
 	<ul class="org-ul">
@@ -612,13 +715,12 @@ CSS 盒模型是 CSS 规范的一个模块，它定义了一个长方形的盒�
 	<div class="org-src-container">
 
 
-	</div>
-	<a href="/2016/03/20/docker%E5%88%9D%E6%8E%A5%E8%A7%A6.html" class="read-more">阅读更多</a>
+	     </div>
+	     <a href="/2016/03/20/docker%E5%88%9D%E6%8E%A5%E8%A7%A6.html" class="read-more">阅读更多</a> -->
 
     </article>
     
 </div>
-
 
 
     </body>

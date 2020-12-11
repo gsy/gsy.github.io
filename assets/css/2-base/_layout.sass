@@ -55,3 +55,27 @@ h1, h2, h3, h4, h5, h6
   padding-top: 0.273em
   line-height: 1.15538em
   padding-bottom: 0.273em
+
+.post-tag
+  font-size: 14px
+  color: black
+  padding: 2px 4px 2px 20px
+  border-radius: 5px
+  background-color: #f5bdbd
+  text-decoration: none
+  position: relative
+
+.post-tag:hover
+  background-color: #ee9191
+
+.post-tag::before
+  content: ''
+  height: 10px
+  width: 10px
+  background: #e44e4e
+  position: absolute
+  border-radius: 5px
+  left: 4px
+  top: 5px
+  border: 1px solid white
+  box-sizing: border-box

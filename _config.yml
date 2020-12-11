@@ -1,4 +1,6 @@
-
 sass:
   sass_dir: assets/css
   style: :nested
+
+tag_page: "/blog/tags"
+tags: "tensorflow mysql"

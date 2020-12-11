@@ -1,0 +1,34 @@
+---
+layout: post
+title: tensorflow
+tag: tensorflow
+---
+
+<div id="outline-container-org508479c" class="outline-2">
+<h2 id="org508479c"><span class="section-number-2">1</span> 搭建 tensorflow 开发环境</h2>
+</div>
+<div id="outline-container-orgf57ca41" class="outline-2">
+<h2 id="orgf57ca41"><span class="section-number-2">2</span> 训练 mnist 数据集</h2>
+</div>
+<div id="outline-container-org755aa08" class="outline-2">
+<h2 id="org755aa08"><span class="section-number-2">3</span> 训练别的数据集</h2>
+</div>
+<div id="outline-container-orgbc973a3" class="outline-2">
+<h2 id="orgbc973a3"><span class="section-number-2">4</span> 训练公司的数据集</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>看起来使用的是 tensorflow 自带的模型去训练的，假设这个模型叫做 resnet
+<ul class="org-ul">
+<li>有人会改网络吗？</li>
+</ul></li>
+<li>手工标注的数据有什么作用呢？将框里面的数据减出来训练？</li>
+<li><p>
+训练的脚本命令
+</p>
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #6c71c4;">CUDA_VISIBLE_DEVICES</span>=2 python3 save_det_cls_model.py --detection_model_path=/home/wujiahong/ebest_cola/detection/output_inference_faster_rcnn_resnet50_1014_1 --classify_model_path=/home/wujiahong/ebest_cola/200_SKU_file/classification_log_10_14/  --export_dir=/home/wujiahong/ebest_cola/serving_model --version=1115
+</pre>
+</div></li>
+</ul>
+</div>
+</div>

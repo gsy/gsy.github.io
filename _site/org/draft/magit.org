@@ -1,9 +1,0 @@
-* features
-  - create branchs
-  - rebase
-  - squash commits
-
-** stage
-   - magit-stage: 展示所有文件的状态
-   - magit-discard: 忽略
-   - magit-gitignore: 加到 .gitignore 文件里

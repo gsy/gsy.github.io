@@ -1,7 +1,0 @@
-* redis作为broker，消息的格式是json
-* publish/subcribe模式
-** producer   
-** consumer
-   两台机器，分别起一个consumer进程。同一个group的消息只被一台机器消费，
-* zookeeper作为中心协调者
-

@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html>
-    
-    {% include head.html %}
-    
-    <body>
-	<article class="content">
-	    <h1 class="title">
-		<a href="" title="{{ page.title }}">{{ page.title }}</a>
-	    </h1>
-	    {{ content }}
-	</article>
-    </body>
+
+  {% include head.html %}
+
+  <body>
+    <article class="content">
+      <h1 class="post-title">{{ page.title }}</h1>
+      <p>
+        {% if page.tags %}
+        {% for tag in page.tags %}
+        <a href="{{ site.tag_page }}#{{ tag | slugify }}" class="post-tag">{{ tag }}</a>
+        {% endfor %}
+        {% endif %}
+      </p>
+
+      {{ content }}
+    </article>
+  </body>
 </html>

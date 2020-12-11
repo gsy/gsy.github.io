@@ -1,9 +1,0 @@
-* 脚手架
-  - 安装vue-cli
-    #+BEGIN_SRC sh
-      npm install -g vue-cli
-      vue init webpack my-project
-      cd my-project
-      npm install
-      npm run dev
-    #+END_SRC
