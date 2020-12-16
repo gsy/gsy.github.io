@@ -1,0 +1,136 @@
+---
+layout: post
+title: Kubernetes 的基础概念
+---
+
+<div id="outline-container-org028e9b4" class="outline-2">
+<h2 id="org028e9b4"><span class="section-number-2">1</span> Kubernetes 是什么？</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+基于容器的分布式架构方案。google 秘密武器 Borg 的开源版本。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org62c83f6" class="outline-2">
+<h2 id="org62c83f6"><span class="section-number-2">2</span> Kubernetes 架构</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+总体结构上分成控制平面和节点
+</p>
+<img src="/assets/img/components-of-kubernetes.svg" title="components-of-kubernetes"></img>
+</div>
+
+<div id="outline-container-org7df8ce1" class="outline-3">
+<h3 id="org7df8ce1"><span class="section-number-3">2.1</span> Control Plane</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+Control Plane 是 k8s 集群的首脑，负责发号施令，跑在 Master 节点上。关键的组件包括：
+</p>
+<ul class="org-ul">
+<li>kube-apiserver: 提供 api 接口</li>
+<li>etcd: k-v 数据库</li>
+<li>kube-scheduler: 负责调度 Pod 到 Node 上</li>
+<li>kube-controller-manager: 管理各种控制器，控制器使得 k8s 的资源对象的实际状态满足用户的声明</li>
+<li>cloud-controller-manager: 提供云服务提供商与 k8s 交互的接口</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgac5255e" class="outline-3">
+<h3 id="orgac5255e"><span class="section-number-3">2.2</span> Node</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+对容器运行的节点的抽象，Node 可以是一个物理机器或者是一个虚拟机。包含 kubelet, container runtime 以及 kube-proxy。
+</p>
+<ul class="org-ul">
+<li>kubelet: 运行在每个 Node 节点上的代理，负责 Pod 的创建、启停等任务，配合 Control Plane 完成集群管理的基本功能</li>
+<li>kube-proxy: 运行在每个 Node 节点上的网络代理，实现 k8s 的 Service 的功能</li>
+<li>container-runtime: 容器的运行时，如果 Docker 等</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org83ac0cd" class="outline-2">
+<h2 id="org83ac0cd"><span class="section-number-2">3</span> Kubernetes 的资源对象</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-org0a418ee" class="outline-3">
+<h3 id="org0a418ee"><span class="section-number-3">3.1</span> Service</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+Service 是一个核心概念，利用内建的透明负载均衡和故障恢复，提供稳定的对外服务能力。Service 的特征是：
+</p>
+<ul class="org-ul">
+<li>拥有一个唯一指定的名字</li>
+<li>拥有一个虚拟 IP 和端口号</li>
+<li>能够提供某种远程服务能力</li>
+<li>被映射到提供这种服务能力的一组容器上</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org425d64a" class="outline-3">
+<h3 id="org425d64a"><span class="section-number-3">3.2</span> Deployment</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Deployment 是对部署的抽象。Deployment 管理 Pods 和 ReplicaSets。
+</p>
+</div>
+</div>
+<div id="outline-container-org6c6c41c" class="outline-3">
+<h3 id="org6c6c41c"><span class="section-number-3">3.3</span> Namespace</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+命令空间，提供 Service, Deployment 的隔离。
+</p>
+</div>
+</div>
+<div id="outline-container-orgde575a7" class="outline-3">
+<h3 id="orgde575a7"><span class="section-number-3">3.4</span> Pod</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+Pod 是一组（一个或者多个）容器，是 k8s 里面的最小的管理单元。Pod 里面的多个容器共享网络和存储，会被一起调度到某个物理机或者虚拟机上。Pod 有两种容器类型的容器：Init 容器和应用容器，Init 容器运行起来之后，应用容器才会启动。Pod 里面还有一个特殊的 Pause 容器，Pause 是整个 Pods 的根容器。设计 Pause 容器的原因是：
+</p>
+<ul class="org-ul">
+<li>作为判断一组容器是否存活的标准</li>
+<li>Pause 容器为其他容器提供共享的网络和存储</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgbdc9f8a" class="outline-3">
+<h3 id="orgbdc9f8a"><span class="section-number-3">3.5</span> Volume</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+储存空间的抽象
+</p>
+</div>
+</div>
+<div id="outline-container-orgb36e106" class="outline-3">
+<h3 id="orgb36e106"><span class="section-number-3">3.6</span> Label</h3>
+<div class="outline-text-3" id="text-3-6">
+<p>
+标签，用于资源对象的选择
+</p>
+</div>
+</div>
+<div id="outline-container-orgd9bc242" class="outline-3">
+<h3 id="orgd9bc242"><span class="section-number-3">3.7</span> Annotation</h3>
+<div class="outline-text-3" id="text-3-7">
+<p>
+key-value 存储，可以挂在不同的资源上
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org4981e1d" class="outline-2">
+<h2 id="org4981e1d"><span class="section-number-2">4</span> Kubernetes 的一些设计哲学</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>声明式地配置资源 (Node, Pod, Service，etc)，通过对比 etcd 里面保存的「资源期望状态」与当前环境的「实际资源状态」的差异来实现自动控制和自动纠错的功能。</li>
+<li>通过接口推动生态的一致性，保证多样性的同时避免混乱和不兼容。比如 CRI, CSI, CNI</li>
+</ul>
+</div>
+</div>
