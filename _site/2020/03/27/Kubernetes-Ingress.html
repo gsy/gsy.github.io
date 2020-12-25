@@ -1,0 +1,773 @@
+---
+layout: post
+title: Kubernetes 实战二：使用 Ingress
+---x
+
+<div id="outline-container-org6ea1670" class="outline-2">
+<h2 id="org6ea1670"><span class="section-number-2">1</span> Ingress 是什么？</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Ingress 定义了外部流量映射到 k8s 内部服务的规则。查了下字典，Ingress 的含义是
+</p>
+<blockquote>
+<p>
+the action or fact of going in or entering; the capacity or right of entrance.
+</p>
+</blockquote>
+
+<p>
+把 Kubernetes 当做一个封闭的系统，Ingress 就是这个系统的入口。在 k8s 内部，Service 为 Pods 提供统一的入口，而 Ingress 规定了哪些流量路由到哪个 Service 上。除了 Ingress 外，暴露一个服务的方式还要 NodePort 和 LoadBalancer, NodePort 通过端口映射，将服务的端口映射到主机的某个随机端口上，LoadBalancer 需要云提供商的支持，比如说 aws 会配置一个 elb 给 service 做负载均衡。
+</p>
+</div>
+</div>
+
+<div id="outline-container-orga719162" class="outline-2">
+<h2 id="orga719162"><span class="section-number-2">2</span> IngressController</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+同其他 k8s 资源一样，Ingress 由一个 Controller 负责控制，Ingress 声明路由规则，IngressController 把这些规则实现出来。在一个集群中，必须有一个运行着的 IngressContrller 才能使 Ingress 生效。可以在集群中部署任意数量的 IngressController，然后在 Ingress 使用注解 ingress.class 指定使用哪个 IngressController。很多传统的网关和反向代理工具都有对应的 IngressController，比如 Kong, HAProxy, nginx 等，还有很多新兴的云原生工具也提供了同样的功能，如 Istio, traefik 等。在这篇文章中我们使用 traefik。
+</p>
+</div>
+
+<div id="outline-container-org22bb9ce" class="outline-3">
+<h3 id="org22bb9ce"><span class="section-number-3">2.1</span> 安装 traefik</h3>
+<div class="outline-text-3" id="text-2-1">
+</div>
+<div id="outline-container-org719222d" class="outline-4">
+<h4 id="org719222d"><span class="section-number-4">2.1.1</span> 使用 helm 安装</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<div class="org-src-container">
+<pre class="src src-sh">helm repo add traefik https://helm.traefik.io/traefik
+helm repo update
+helm install traefik traefik/traefik
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org0b9aab0" class="outline-4">
+<h4 id="org0b9aab0"><span class="section-number-4">2.1.2</span> 使用 daemonset 安装</h4>
+<div class="outline-text-4" id="text-2-1-2">
+<p>
+helm 安装使用的是 deployment。daemonset 可以使用绑定主机的 80 端口，不用通过 kube-proxy 再转发次流量。
+</p>
+
+<p>
+traefik-ds.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: v1
+<span style="color: #6c71c4;">kind</span>: ServiceAccount
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: traefik-ingress-controller
+  <span style="color: #6c71c4;">namespace</span>: kube-system
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">kind</span>: DaemonSet
+<span style="color: #6c71c4;">apiVersion</span>: extensions/v1beta1
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: traefik-ingress-controller
+  <span style="color: #6c71c4;">namespace</span>: kube-system
+  <span style="color: #6c71c4;">labels</span>:
+    <span style="color: #6c71c4;">k8s-app</span>: traefik-ingress-lb
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">template</span>:
+    <span style="color: #6c71c4;">metadata</span>:
+      <span style="color: #6c71c4;">labels</span>:
+        <span style="color: #6c71c4;">k8s-app</span>: traefik-ingress-lb
+        <span style="color: #6c71c4;">name</span>: traefik-ingress-lb
+    <span style="color: #6c71c4;">spec</span>:
+      <span style="color: #6c71c4;">serviceAccountName</span>: traefik-ingress-controller
+      <span style="color: #6c71c4;">terminationGracePeriodSeconds</span>: 60
+      <span style="color: #6c71c4;">containers</span>:
+      - <span style="color: #6c71c4;">image</span>: traefik
+        <span style="color: #6c71c4;">name</span>: traefik-ingress-lb
+        <span style="color: #6c71c4;">ports</span>:
+        - <span style="color: #6c71c4;">name</span>: http
+          <span style="color: #6c71c4;">containerPort</span>: 80
+          <span style="color: #6c71c4;">hostPort</span>: 80
+        - <span style="color: #6c71c4;">name</span>: admin
+          <span style="color: #6c71c4;">containerPort</span>: 8080
+        <span style="color: #6c71c4;">securityContext</span>:
+          <span style="color: #6c71c4;">capabilities</span>:
+            <span style="color: #6c71c4;">drop</span>:
+            - ALL
+            <span style="color: #6c71c4;">add</span>:
+            - NET_BIND_SERVICE
+        <span style="color: #6c71c4;">args</span>:
+        - --api
+        - --kubernetes
+        - --logLevel=INFO
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">kind</span>: Service
+<span style="color: #6c71c4;">apiVersion</span>: v1
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: traefik-ingress-service
+  <span style="color: #6c71c4;">namespace</span>: kube-system
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">selector</span>:
+    <span style="color: #6c71c4;">k8s-app</span>: traefik-ingress-lb
+  <span style="color: #6c71c4;">ports</span>:
+    - <span style="color: #6c71c4;">protocol</span>: TCP
+      <span style="color: #6c71c4;">port</span>: 80
+      <span style="color: #6c71c4;">name</span>: web
+    - <span style="color: #6c71c4;">protocol</span>: TCP
+      <span style="color: #6c71c4;">port</span>: 8080
+      <span style="color: #6c71c4;">name</span>: admin
+</pre>
+</div>
+
+<p>
+traefik v2 开始可以使用 CRD 来配置路由，先创建这些 CRD
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">IngressRoute</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: ingressroutes.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: IngressRoute
+    <span style="color: #6c71c4;">plural</span>: ingressroutes
+    <span style="color: #6c71c4;">singular</span>: ingressroute
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">IngressRouteTCP</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: ingressroutetcps.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: IngressRouteTCP
+    <span style="color: #6c71c4;">plural</span>: ingressroutetcps
+    <span style="color: #6c71c4;">singular</span>: ingressroutetcp
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">Middleware</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: middlewares.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: Middleware
+    <span style="color: #6c71c4;">plural</span>: middlewares
+    <span style="color: #6c71c4;">singular</span>: middleware
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">TLSOption</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: tlsoptions.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: TLSOption
+    <span style="color: #6c71c4;">plural</span>: tlsoptions
+    <span style="color: #6c71c4;">singular</span>: tlsoption
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">TraefikService</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: traefikservices.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: TraefikService
+    <span style="color: #6c71c4;">plural</span>: traefikservices
+    <span style="color: #6c71c4;">singular</span>: traefikservice
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">TLSStore</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: tlsstores.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: TLSStore
+    <span style="color: #6c71c4;">plural</span>: tlsstores
+    <span style="color: #6c71c4;">singular</span>: tlsstore
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #93a1a1; font-style: italic;">## </span><span style="color: #93a1a1; font-style: italic;">IngressRouteUDP</span>
+<span style="color: #6c71c4;">apiVersion</span>: apiextensions.k8s.io/v1beta1
+<span style="color: #6c71c4;">kind</span>: CustomResourceDefinition
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: ingressrouteudps.traefik.containo.us
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">group</span>: traefik.containo.us
+  <span style="color: #6c71c4;">version</span>: v1alpha1
+  <span style="color: #6c71c4;">names</span>:
+    <span style="color: #6c71c4;">kind</span>: IngressRouteUDP
+    <span style="color: #6c71c4;">plural</span>: ingressrouteudps
+    <span style="color: #6c71c4;">singular</span>: ingressrouteudp
+  <span style="color: #6c71c4;">scope</span>: Namespaced
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgbd5a74e" class="outline-2">
+<h2 id="orgbd5a74e"><span class="section-number-2">3</span> 常见场景底下的 ingress 使用</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+创建两个简单的 web 服务，来看下 ingress 的使用。
+</p>
+
+<p>
+app.py
+</p>
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #93a1a1; font-style: italic;">#</span><span style="color: #93a1a1; font-style: italic;">!/usr/bin/env python3</span>
+
+<span style="color: #859900;">import</span> os
+
+<span style="color: #859900;">from</span> flask <span style="color: #859900;">import</span> Flask
+
+<span style="color: #6c71c4;">app</span> = Flask(<span style="color: #6c71c4;">__name__</span>)
+
+<span style="color: #268bd2;">@app.route</span>(<span style="color: #2aa198;">"/"</span>, methods=[<span style="color: #2aa198;">"GET"</span>])
+<span style="color: #859900;">def</span> <span style="color: #b58900;">selfIntroduction</span>():
+    <span style="color: #6c71c4;">name</span> = os.environ.get(<span style="color: #2aa198;">"SERVER_NAME"</span>)
+    <span style="color: #859900;">return</span> f<span style="color: #2aa198;">"I'm {name}"</span>
+</pre>
+</div>
+
+<p>
+部署两个服务到 k8s 集群。通过环境变量注入服务的名字。
+</p>
+
+<p>
+deploy.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: v1
+<span style="color: #6c71c4;">kind</span>: Service
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: foo-svc
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">type</span>: ClusterIP
+  <span style="color: #6c71c4;">ports</span>:
+  - <span style="color: #6c71c4;">port</span>: 5000
+    <span style="color: #6c71c4;">targetPort</span>: 5000
+    <span style="color: #6c71c4;">protocol</span>: TCP
+  <span style="color: #6c71c4;">selector</span>:
+    <span style="color: #6c71c4;">app</span>: foo
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: apps/v1
+<span style="color: #6c71c4;">kind</span>: Deployment
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: foo
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">replicas</span>: 1
+  <span style="color: #6c71c4;">selector</span>:
+    <span style="color: #6c71c4;">matchLabels</span>:
+      <span style="color: #6c71c4;">app</span>: foo
+  <span style="color: #6c71c4;">template</span>:
+    <span style="color: #6c71c4;">metadata</span>:
+      <span style="color: #6c71c4;">labels</span>:
+        <span style="color: #6c71c4;">app</span>: foo
+    <span style="color: #6c71c4;">spec</span>:
+      <span style="color: #6c71c4;">containers</span>:
+      - <span style="color: #6c71c4;">name</span>: foo
+        <span style="color: #6c71c4;">image</span>: &lt;image_url&gt;
+        <span style="color: #6c71c4;">env</span>:
+          - <span style="color: #6c71c4;">name</span>: SERVER_NAME
+            <span style="color: #6c71c4;">value</span>: foo
+        <span style="color: #6c71c4;">ports</span>:
+        - <span style="color: #6c71c4;">containerPort</span>: 5000
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: v1
+<span style="color: #6c71c4;">kind</span>: Service
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: bar-svc
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">type</span>: ClusterIP
+  <span style="color: #6c71c4;">ports</span>:
+  - <span style="color: #6c71c4;">port</span>: 5000
+    <span style="color: #6c71c4;">targetPort</span>: 5000
+    <span style="color: #6c71c4;">protocol</span>: TCP
+  <span style="color: #6c71c4;">selector</span>:
+    <span style="color: #6c71c4;">app</span>: bar
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: apps/v1
+<span style="color: #6c71c4;">kind</span>: Deployment
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: bar
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">replicas</span>: 1
+  <span style="color: #6c71c4;">selector</span>:
+    <span style="color: #6c71c4;">matchLabels</span>:
+      <span style="color: #6c71c4;">app</span>: bar
+  <span style="color: #6c71c4;">template</span>:
+    <span style="color: #6c71c4;">metadata</span>:
+      <span style="color: #6c71c4;">labels</span>:
+        <span style="color: #6c71c4;">app</span>: bar
+    <span style="color: #6c71c4;">spec</span>:
+      <span style="color: #6c71c4;">containers</span>:
+      - <span style="color: #6c71c4;">name</span>: bar
+        <span style="color: #6c71c4;">image</span>: &lt;image_url&gt;
+        <span style="color: #6c71c4;">env</span>:
+          - <span style="color: #6c71c4;">name</span>: SERVER_NAME
+            <span style="color: #6c71c4;">value</span>: bar
+        <span style="color: #6c71c4;">ports</span>:
+        - <span style="color: #6c71c4;">containerPort</span>: 5000
+</pre>
+</div>
+
+<p>
+查看 service 状态
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">$ kubectl get svc -n test
+NAME      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+bar-svc   ClusterIP   10.104.24.196   &lt;none&gt;        5000/TCP   2m3s
+foo-svc   ClusterIP   10.97.167.168   &lt;none&gt;        5000/TCP   2m3s
+</pre>
+</div>
+
+<p>
+通过 Service 的 ClusterIP+Port 查看接口是否正常工作
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">$ http 10.97.167.168:5000/
+
+HTTP/1.0 200 OK
+Content-Length: 7
+Content-Type: text/html; <span style="color: #6c71c4;">charset</span>=utf-8
+Server: Werkzeug/1.0.0 Python/3.7.9
+
+I<span style="color: #2aa198;">'m foo</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-sh">$ http 10.104.24.196:5000/
+HTTP/1.0 200 OK
+Content-Length: 7
+Content-Type: text/html; <span style="color: #6c71c4;">charset</span>=utf-8
+Server: Werkzeug/1.0.0 Python/3.7.9
+
+I<span style="color: #2aa198;">'m bar</span>
+</pre>
+</div>
+
+<p>
+so far so good. 接着看怎么定义路由规则。
+</p>
+</div>
+
+<div id="outline-container-orge663f89" class="outline-3">
+<h3 id="orge663f89"><span class="section-number-3">3.1</span> 根据域名路由</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+根据域名进行路由，路由规则为：
+</p>
+
+<p>
+foo.me -&gt; foo
+</p>
+
+<p>
+bar.me -&gt; bar
+</p>
+
+<p>
+ing.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: IngressRoute
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: simple
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">entryPoints</span>:
+    - web
+  <span style="color: #6c71c4;">routes</span>:
+  - <span style="color: #6c71c4;">match</span>: Host(`foo.me`)
+    <span style="color: #6c71c4;">kind</span>: Rule
+    <span style="color: #6c71c4;">services</span>:
+    - <span style="color: #6c71c4;">name</span>: foo-svc
+      <span style="color: #6c71c4;">namespace</span>: test
+      <span style="color: #6c71c4;">port</span>: 5000
+  - <span style="color: #6c71c4;">match</span>: Host(`bar.me`)
+    <span style="color: #6c71c4;">kind</span>: Rule
+    <span style="color: #6c71c4;">services</span>:
+    - <span style="color: #6c71c4;">name</span>: bar-svc
+      <span style="color: #6c71c4;">namespace</span>: test
+      <span style="color: #6c71c4;">port</span>: 5000
+</pre>
+</div>
+
+<p>
+然后我们需要验证下这个规则是否起作用了。首先找到 traefik 的 Service
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">kubectl get svc -n kube-system
+NAME       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                   AGE
+kube-dns   ClusterIP   10.96.0.10      &lt;none&gt;        53/UDP,53/TCP,9153/TCP    118d
+traefik    ClusterIP   10.101.52.161   &lt;none&gt;        80/TCP,443/TCP,8080/TCP   118d
+</pre>
+</div>
+
+<p>
+在集群内部，使用 traefik 的 ClusterIP + Port 请求，使用 Host header 表明我们想访问的域。
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161 Host:foo.me
+HTTP/1.1 200 OK
+Content-Length: 7
+Content-Type: text/html; <span style="color: #6c71c4;">charset</span>=utf-8
+Server: Werkzeug/1.0.0 Python/3.7.9
+
+I<span style="color: #2aa198;">'m foo</span>
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161 Host:bar.me
+HTTP/1.1 200 OK
+Content-Length: 7
+Content-Type: text/html; <span style="color: #6c71c4;">charset</span>=utf-8
+Server: Werkzeug/1.0.0 Python/3.7.9
+
+I<span style="color: #2aa198;">'m bar</span>
+</pre>
+</div>
+
+<p>
+可见 traefik 服务的路由如同预期在工作。在 k8s 集群外部我们怎么能通过域名访问到服务呢？traefik 使用 daemonset 的方式安装，绑定了 host 的 80 端口，使用 host 的 ip 访问就可以，还可以修改 /etc/hosts 添加域名解析。
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgd4deeed" class="outline-3">
+<h3 id="orgd4deeed"><span class="section-number-3">3.2</span> 根据路径路由</h3>
+<div class="outline-text-3" id="text-3-2">
+</div>
+<div id="outline-container-orgde3cbe2" class="outline-4">
+<h4 id="orgde3cbe2"><span class="section-number-4">3.2.1</span> prefixStrip</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+根据路径路由，并且把路径前缀去掉
+</p>
+
+<p>
+services.me/foo -&gt; foo
+</p>
+
+<p>
+services.me/bar -&gt; bar
+</p>
+
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: Middleware
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: strip
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">stripPrefix</span>:
+    <span style="color: #6c71c4;">prefixes</span>:
+      - /foo
+      - /bar
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: IngressRoute
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: stripprefix
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">entryPoints</span>:
+    - web
+  <span style="color: #6c71c4;">routes</span>:
+    - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/foo`)
+      <span style="color: #6c71c4;">kind</span>: Rule
+      <span style="color: #6c71c4;">services</span>:
+      - <span style="color: #6c71c4;">name</span>: foo-svc
+        <span style="color: #6c71c4;">port</span>: 5000
+      <span style="color: #6c71c4;">middlewares</span>:
+      - <span style="color: #6c71c4;">name</span>: strip
+    - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/bar`)
+      <span style="color: #6c71c4;">kind</span>: Rule
+      <span style="color: #6c71c4;">services</span>:
+      - <span style="color: #6c71c4;">name</span>: bar-svc
+        <span style="color: #6c71c4;">port</span>: 5000
+      <span style="color: #6c71c4;">middlewares</span>:
+      - <span style="color: #6c71c4;">name</span>: strip
+</pre>
+</div>
+<p>
+效果是
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161/foo Host:services.me
+
+I<span style="color: #2aa198;">'m foo</span>
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161/bar Host:services.me
+
+I<span style="color: #2aa198;">'m bar</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd879bd5" class="outline-4">
+<h4 id="orgd879bd5"><span class="section-number-4">3.2.2</span> prefix</h4>
+<div class="outline-text-4" id="text-3-2-2">
+<p>
+根据路径路由，保持前缀不变
+</p>
+
+<p>
+services.me/v1 -&gt; foo
+</p>
+
+<p>
+services.me/v2 -&gt; bar
+</p>
+
+<p>
+修改代码，添加 /v1, /v2 两个 endpoint
+</p>
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #268bd2;">@app.route</span>(<span style="color: #2aa198;">"/v1"</span>, methods=[<span style="color: #2aa198;">"GET"</span>])
+<span style="color: #859900;">def</span> <span style="color: #b58900;">v1</span>():
+    <span style="color: #859900;">return</span> <span style="color: #2aa198;">"version 1.0"</span>
+
+
+<span style="color: #268bd2;">@app.route</span>(<span style="color: #2aa198;">"/v2"</span>, methods=[<span style="color: #2aa198;">"GET"</span>])
+<span style="color: #859900;">def</span> <span style="color: #b58900;">v2</span>():
+    <span style="color: #859900;">return</span> <span style="color: #2aa198;">"version 2.0"</span>
+</pre>
+</div>
+
+<p>
+创建 IngressRoute
+</p>
+
+<p>
+ing.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: IngressRoute
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: prefix
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">entryPoints</span>:
+    - web
+  <span style="color: #6c71c4;">routes</span>:
+  - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/v1`)
+    <span style="color: #6c71c4;">kind</span>: Rule
+    <span style="color: #6c71c4;">services</span>:
+    - <span style="color: #6c71c4;">name</span>: foo-svc
+      <span style="color: #6c71c4;">port</span>: 5000
+  - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/v2`)
+    <span style="color: #6c71c4;">kind</span>: Rule
+    <span style="color: #6c71c4;">services</span>:
+    - <span style="color: #6c71c4;">name</span>: bar-svc
+      <span style="color: #6c71c4;">port</span>: 5000
+</pre>
+</div>
+
+<p>
+效果是
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161/v1 Host:services.me
+
+version 1.0
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161/v2 Host:services.me
+
+version 2.0
+</pre>
+</div>
+
+<p>
+观察日志可以看到请求的确打到了对应的服务
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">kubectl logs pods foo-657598f67d-qkvgj -n test --tail 10 -f
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org84d17cc" class="outline-4">
+<h4 id="org84d17cc"><span class="section-number-4">3.2.3</span> replacePath</h4>
+<div class="outline-text-4" id="text-3-2-3">
+<p>
+修改路由规则，将 endpoint 为 v1 的请求都改成 v2
+</p>
+
+<p>
+services.me/v1 -&gt; services.me/v2
+</p>
+
+<p>
+ing.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: Middleware
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: upgradeversion
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">replacePath</span>:
+    <span style="color: #6c71c4;">path</span>: /v2
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: IngressRoute
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: replace
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">entryPoints</span>:
+    - web
+  <span style="color: #6c71c4;">routes</span>:
+    - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/v1`)
+      <span style="color: #6c71c4;">kind</span>: Rule
+      <span style="color: #6c71c4;">services</span>:
+      - <span style="color: #6c71c4;">name</span>: foo-svc
+        <span style="color: #6c71c4;">port</span>: 5000
+      <span style="color: #6c71c4;">middlewares</span>:
+      - <span style="color: #6c71c4;">name</span>: upgradeversion
+    - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/v2`)
+      <span style="color: #6c71c4;">kind</span>: Rule
+      <span style="color: #6c71c4;">services</span>:
+      - <span style="color: #6c71c4;">name</span>: foo-svc
+        <span style="color: #6c71c4;">port</span>: 5000
+</pre>
+</div>
+
+<p>
+效果是 v1 的请求返回了 v2 的结果。
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">$ http GET http://10.101.52.161/v1 Host:services.me
+HTTP/1.1 200 OK
+Content-Length: 11
+Content-Type: text/html; <span style="color: #6c71c4;">charset</span>=utf-8
+
+version 2.0
+
+$ http GET http://10.101.52.161/v2 Host:services.me
+HTTP/1.1 200 OK
+Content-Length: 11
+Content-Type: text/html; <span style="color: #6c71c4;">charset</span>=utf-8
+
+version 2.0
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org836dbd9" class="outline-3">
+<h3 id="org836dbd9"><span class="section-number-3">3.3</span> 熔断</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+当某个服务不可用的时候，可以将它熔断，避免引起更大的麻烦。熔断机制用到了一些类似电路的术语，traefik 的熔断器 (CircuitBreaker) 有三种状态：
+</p>
+<ul class="org-ul">
+<li>Closed: 服务不健康时进入这个状态，这时 CircuitBreak 只收集监控数据。根据 expression 的执行结果看是不是要跳转到 Open 状态</li>
+<li>Open: fallback 机制起作用，接管服务，返回 503。持续一段时间之后进入 Recovering 状态</li>
+<li>Recovering: 放小流量到服务，如果服务能正常工作了，回到 Closed 状态，否则，回到 Open 状态。</li>
+</ul>
+
+<p>
+用电路的思路理解，Service 看成元器件，当我们定位到一个故障是某个元器件导致的时，先找到一个替代品安到电路里，随时准备替换（closed 状态）；测下原来的元器件看下是不是真的不行了，如果不行了就把它从整个电路里面断开，把替代品接上顶替（open 状态）；争取下时间来修原来的元器件，修好后接回原电路试下 （Recovering 状态）。对于电路来说，判断是不是故障可以测量电压或者电流，对于软件来说，根据状态码和延迟判断。
+在 traefik 中配置一个 CircuitBreaker
+</p>
+
+<p>
+ing.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: Middleware
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: fuse
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">circuitBreaker</span>:
+    <span style="color: #6c71c4;">expression</span>: ResponseCodeRatio(500, 600, 0, 600) &gt; 0.10
+<span style="color: #93a1a1; font-style: italic;">---</span>
+<span style="color: #6c71c4;">apiVersion</span>: traefik.containo.us/v1alpha1
+<span style="color: #6c71c4;">kind</span>: IngressRoute
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: circuitbreak
+  <span style="color: #6c71c4;">namespace</span>: test
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #6c71c4;">entryPoints</span>:
+    - web
+  <span style="color: #6c71c4;">routes</span>:
+    - <span style="color: #6c71c4;">match</span>: Host(`services.me`) &amp;&amp; PathPrefix(`/v1`)
+      <span style="color: #6c71c4;">kind</span>: Rule
+      <span style="color: #6c71c4;">services</span>:
+      - <span style="color: #6c71c4;">name</span>: foo-svc
+        <span style="color: #6c71c4;">port</span>: 5000
+      <span style="color: #6c71c4;">middlewares</span>:
+      - <span style="color: #6c71c4;">name</span>: fuse
+
+
+</pre>
+</div>
+
+<p>
+修改代码，模拟故障
+</p>
+<div class="org-src-container">
+<pre class="src src-python"><span style="color: #268bd2;">@app.route</span>(<span style="color: #2aa198;">"/v1"</span>, methods=[<span style="color: #2aa198;">"GET"</span>])
+<span style="color: #859900;">def</span> <span style="color: #b58900;">v1</span>():
+    abort(500)
+</pre>
+</div>
+
+<p>
+第一次请求返回了 500，第二次请求返回 503 Service Unavailable，因为500的比例大于0.1了。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org53cb590" class="outline-2">
+<h2 id="org53cb590"><span class="section-number-2">4</span> 参考</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li><a href="https://www.infvie.com/ops-notes/kubernetes-ingress-traefik.html">https://www.infvie.com/ops-notes/kubernetes-ingress-traefik.html</a></li>
+</ul>
+</div>
+</div>
