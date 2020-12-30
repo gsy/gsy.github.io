@@ -237,4 +237,5 @@ article.post {
     -moz-border-radius: 4px;
     border-radius: 4px; }
   .content img {
-    max-width: 100%; }
+    max-width: 100%;
+    max-height: 320px; }
