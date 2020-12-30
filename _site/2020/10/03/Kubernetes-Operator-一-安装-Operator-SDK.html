@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <title>Kubernetes Operator 一：安装 Operator SDK</title>
+  <!-- link to main stylesheet -->
+  <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+  <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</head>
+
+
+  <body>
+    <article class="content">
+      <h1 class="post-title">Kubernetes Operator 一：安装 Operator SDK</h1>
+      <p>
+        
+        
+        
+      </p>
+
+      <div id="outline-container-orgb9ed112" class="outline-2">
+<h2 id="orgb9ed112"><span class="section-number-2">1</span> Operator SDK 介绍</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Operator SDK 是构建 Kubernetes Operator 的工具，在 controller-runtime 的基础上提供
+</p>
+<ul class="org-ul">
+<li>高级的 API 和抽象，以便用符合直觉的方式写 operator 的代码</li>
+<li>构建工程的脚手架工具</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org0ac2f80" class="outline-2">
+<h2 id="org0ac2f80"><span class="section-number-2">2</span> 安装 Operator SDK</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-orgc06ca82" class="outline-3">
+<h3 id="orgc06ca82"><span class="section-number-3">2.1</span> 使用 homebrew</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+<pre class="src src-sh">brew install operator-sdk
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org54ef703" class="outline-3">
+<h3 id="org54ef703"><span class="section-number-3">2.2</span> 使用 git</h3>
+<div class="outline-text-3" id="text-2-2">
+<div class="org-src-container">
+<pre class="src src-sh">git clone https://github.com/operator-framework/operator-sdk
+<span style="color: #6c71c4;">cd</span> operator-sdk
+git checkout master
+make install
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org5430261" class="outline-2">
+<h2 id="org5430261"><span class="section-number-2">3</span> 创建一个 sample 项目</h2>
+<div class="outline-text-2" id="text-3">
+<div class="org-src-container">
+<pre class="src src-sh">mkdir memcached-operator
+<span style="color: #6c71c4;">cd</span> memcached-operator
+operator-sdk init --domain=example.com --repo=github.com/example-inc/memcached-operator
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org6c4e0b4" class="outline-3">
+<h3 id="org6c4e0b4"><span class="section-number-3">3.1</span> 创建 API</h3>
+<div class="outline-text-3" id="text-3-1">
+<div class="org-src-container">
+<pre class="src src-sh">operator-sdk create api --group cache --version v1 --kind Memcached --resource=true --controller=true
+</pre>
+</div>
+<p>
+创建一个 Memcached 的 CRD, 对应的 controller 的处理逻辑是空的
+</p>
+</div>
+</div>
+
+<div id="outline-container-org87efb4d" class="outline-3">
+<h3 id="org87efb4d"><span class="section-number-3">3.2</span> 构建 Docker image</h3>
+<div class="outline-text-3" id="text-3-2">
+<div class="org-src-container">
+<pre class="src src-sh">make docker-build docker-push <span style="color: #6c71c4;">IMG</span>=&lt;some-registry&gt;/&lt;project-name&gt;:&lt;tag&gt;
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org20187d4" class="outline-3">
+<h3 id="org20187d4"><span class="section-number-3">3.3</span> 部署 Operator 到 Kubernetes 集群</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+官方的教程是：
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">make install
+make deploy <span style="color: #6c71c4;">IMG</span>=&lt;some-registry&gt;/&lt;project-name&gt;:&lt;tag&gt;
+</pre>
+</div>
+<p>
+但是我的开发环境是 mac, kubernetes 集群在另外的 linux 机器上，所以我需要把 Kustomize 生成的 yaml 文件 copy 到 kubenetes 机器上，然后执行 kubectl apply -f 命令把它们安装到 k8s 集群里面。
+</p>
+
+<p>
+在 mac 上生成 yaml 文件，保存到一个目录里面，等下把整个目录 copy 到 linux 机器上。
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">make manifests
+kustomize build config/crd &gt; ~/Downloads/operator/crd.yaml
+<span style="color: #6c71c4;">cd</span> config/manager &amp;&amp; kustomize edit set image <span style="color: #6c71c4;">controller</span>=${<span style="color: #6c71c4;">IMG</span>}
+kustomize build config/default &gt; ~/Downloads/operator/default.yaml
+</pre>
+</div>
+
+<p>
+将 operator 目录 copy 到 kubernetes 的 master 节点，执行
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">kubectl apply -f operator
+</pre>
+</div>
+<p>
+default.yaml 执行失败，找不到 memcached-operator-system 这个 namespace，先手工创建，再执行一遍
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">kubectl create ns memcached-operator-system
+kubectl apply -f default.yaml
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8582c1e" class="outline-3">
+<h3 id="org8582c1e"><span class="section-number-3">3.4</span> 创建 CR</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+operator 和 CRD 都创建出来之后，就可以使用 CRD 去创建 CR 了。
+</p>
+
+<p>
+sample.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: cache.example.com/v1
+<span style="color: #6c71c4;">kind</span>: Memcached
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: memcached-sample
+<span style="color: #6c71c4;">spec</span>:
+  <span style="color: #93a1a1; font-style: italic;"># </span><span style="color: #93a1a1; font-style: italic;">Add fields here</span>
+  <span style="color: #6c71c4;">foo</span>: bar
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-sh">kubectl apply -f sample.yaml
+</pre>
+</div>
+
+<p>
+查看日志
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">kubectl logs deployment.apps/memcached-operator-controller-manager -n memcached-operator-system -c manager
+</pre>
+</div>
+
+<p>
+日志输出
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">Starting EventSource    {<span style="color: #2aa198;">"reconcilerGroup"</span>: <span style="color: #2aa198;">"cache.example.com"</span>, <span style="color: #2aa198;">"reconcilerKind"</span>: <span style="color: #2aa198;">"Memcached"</span>, <span style="color: #2aa198;">"controller"</span>: <span style="color: #2aa198;">"memcached"</span>, <span style="color: #2aa198;">"source"</span>: <span style="color: #2aa198;">"kind source: /, Kind="</span>}
+Starting Controller     {<span style="color: #2aa198;">"reconcilerGroup"</span>: <span style="color: #2aa198;">"cache.example.com"</span>, <span style="color: #2aa198;">"reconcilerKind"</span>: <span style="color: #2aa198;">"Memcached"</span>, <span style="color: #2aa198;">"controller"</span>: <span style="color: #2aa198;">"memcached"</span>}
+Starting workers        {<span style="color: #2aa198;">"reconcilerGroup"</span>: <span style="color: #2aa198;">"cache.example.com"</span>, <span style="color: #2aa198;">"reconcilerKind"</span>: <span style="color: #2aa198;">"Memcached"</span>, <span style="color: #2aa198;">"controller"</span>: <span style="color: #2aa198;">"memcached"</span>, <span style="color: #2aa198;">"worker count"</span>: 1}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org575db0d" class="outline-3">
+<h3 id="org575db0d"><span class="section-number-3">3.5</span> 清理</h3>
+<div class="outline-text-3" id="text-3-5">
+<div class="org-src-container">
+<pre class="src src-sh">kubectl delete -f sample.yaml
+kubectl delete -f operator
+kubectl delete ns memcached-operator-system
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org152080d" class="outline-2">
+<h2 id="org152080d"><span class="section-number-2">4</span> 参考</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li><a href="https://sdk.operatorframework.io/docs/installation/">https://sdk.operatorframework.io/docs/installation/</a></li>
+<li><a href="https://sdk.operatorframework.io/docs/building-operators/golang/quickstart/">https://sdk.operatorframework.io/docs/building-operators/golang/quickstart/</a></li>
+</ul>
+</div>
+</div>
+
+    </article>
+  </body>
+</html>
