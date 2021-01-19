@@ -1,0 +1,245 @@
+---
+layout: post
+title: Kubernetes 实战五：Kubernetes 部署高可用 Kafka 集群
+---
+
+<div id="outline-container-org68116d1" class="outline-2">
+<h2 id="org68116d1"><span class="section-number-2">1</span> Helm 安装 kafka 集群</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-orgb7ad749" class="outline-3">
+<h3 id="orgb7ad749"><span class="section-number-3">1.1</span> 准备存储</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+我们使用 ceph 的块设备为 kafka 和 zookeeper 提供存储。
+</p>
+
+<p>
+1.在 ceph 中创建 rbd pool
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">ceph osd pool create kubernetes 128 128
+rbd pool init kubernetes
+</pre>
+</div>
+
+<p>
+2.创建一个新用户
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">ceph auth get-or-create client.kubernetes mon <span style="color: #2aa198;">'profile rbd'</span> osd <span style="color: #2aa198;">'profile rbd pool=kubernetes'</span> mgr <span style="color: #2aa198;">'profile rbd pool=kubernetes'</span>
+<span style="color: #93a1a1; font-style: italic;"># </span><span style="color: #93a1a1; font-style: italic;">&#36755;&#20986;</span>
+[client.kubernetes]
+        <span style="color: #6c71c4;">key</span> = AQD+<span style="color: #6c71c4;">bP5fWXf6EhAAjdeXOPjfQZye3PJujEksBg</span>==
+</pre>
+</div>
+
+<p>
+3.查询 ceph monitor 的地址
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">ceph mon dump
+<span style="color: #93a1a1; font-style: italic;"># </span><span style="color: #93a1a1; font-style: italic;">&#36755;&#20986;</span>
+dumped monmap epoch 3
+epoch 3
+fsid 74c320b9-2460-491a-b52a-a224606551d4
+last_changed 2020-08-13 07:59:18.847900
+created 2020-08-13 07:40:32.818646
+min_mon_release 14 (nautilus)
+0: [v2:192.168.21.99:3300/0,v1:192.168.21.99:6789/0] mon.a
+1: [v2:192.168.21.100:3300/0,v1:192.168.21.100:6789/0] mon.b
+2: [v2:192.168.21.72:3300/0,v1:192.168.21.72:6789/0] mon.d
+</pre>
+</div>
+
+<p>
+4.创建 k8s configmap
+csi-config-map.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: v1
+<span style="color: #6c71c4;">kind</span>: ConfigMap
+<span style="color: #6c71c4;">data</span>:
+  <span style="color: #6c71c4;">config.json</span>: |-
+    <span style="color: #2aa198;">[</span>
+<span style="color: #2aa198;">      {</span>
+        <span style="color: #2aa198;">"clusterID"</span>: <span style="color: #2aa198;">"74c320b9-2460-491a-b52a-a224606551d4"</span>
+        <span style="color: #2aa198;">"monitors"</span>: [
+          <span style="color: #2aa198;">"192.168.21.99:6789"</span>,
+          <span style="color: #2aa198;">"192.168.21.100:6789"</span>,
+          <span style="color: #2aa198;">"192.168.21.72:6789"</span>
+<span style="color: #2aa198;">        ]</span>
+<span style="color: #2aa198;">      }</span>
+    <span style="color: #6c71c4;">]</span>
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: ceph-csi-config
+</pre>
+</div>
+<p>
+clusterID，monitors 为第3步输出的 fsid 和 monitors
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">kubectl apply -f csi-config-map.yaml
+</pre>
+</div>
+
+
+<p>
+5.创建跟 ceph 通信需要用到的 secret
+</p>
+
+<p>
+csi-rbd-secret.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: v1
+<span style="color: #6c71c4;">kind</span>: Secret
+<span style="color: #6c71c4;">metadata</span>:
+  <span style="color: #6c71c4;">name</span>: csi-rbd-secret
+  <span style="color: #6c71c4;">namespace</span>: default
+<span style="color: #6c71c4;">stringData</span>:
+  <span style="color: #6c71c4;">userID</span>: kubernetes
+  <span style="color: #6c71c4;">userKey</span>: AQD+bP5fWXf6EhAAjdeXOPjfQZye3PJujEksBg==
+</pre>
+</div>
+<p>
+userKey 是第二步中创建用户输出的 key
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">kubectl apply -f csi-rbd-secret.yaml
+</pre>
+</div>
+
+<p>
+6.创建 ServiceAccount 和 ClusterRole/ClusterRoleBinding 对象
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">kubectl apply -f https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml
+</pre>
+</div>
+
+<p>
+7.创建 ceph-csi provisioner 和 node plugins
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">wget https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml
+kubectl apply -f csi-rbdplugin-provisioner.yaml
+wget https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml
+ kubectl apply -f csi-rbdplugin.yaml
+</pre>
+</div>
+
+<p>
+kubectl apply 的时候会碰到一个 <b>configmap "ceph-csi-encryption-kms-config" not found</b> 的错误，看起来是跟加密有关的一些配置不对。先把 ceph-csi-encryption-kms-config 这个 mount 配置都注释掉了。
+</p>
+
+<p>
+8.创建 storage-class
+csi-rbd-sc.yaml
+</p>
+<div class="org-src-container">
+<pre class="src src-yaml"><span style="color: #6c71c4;">apiVersion</span>: storage.k8s.io/v1
+<span style="color: #6c71c4;">kind</span>: StorageClass
+<span style="color: #6c71c4;">metadata</span>:
+   <span style="color: #6c71c4;">name</span>: csi-rbd-sc
+<span style="color: #6c71c4;">provisioner</span>: rbd.csi.ceph.com
+<span style="color: #6c71c4;">parameters</span>:
+   <span style="color: #6c71c4;">clusterID</span>: 74c320b9-2460-491a-b52a-a224606551d4
+   <span style="color: #6c71c4;">pool</span>: kubernetes
+   <span style="color: #6c71c4;">csi.storage.k8s.io/provisioner-secret-name</span>: csi-rbd-secret
+   <span style="color: #6c71c4;">csi.storage.k8s.io/provisioner-secret-namespace</span>: default
+   <span style="color: #6c71c4;">csi.storage.k8s.io/node-stage-secret-name</span>: csi-rbd-secret
+   <span style="color: #6c71c4;">csi.storage.k8s.io/node-stage-secret-namespace</span>: default
+<span style="color: #6c71c4;">reclaimPolicy</span>: Delete
+<span style="color: #6c71c4;">mountOptions</span>:
+   - discard
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org3a656c7" class="outline-3">
+<h3 id="org3a656c7"><span class="section-number-3">1.2</span> 安装</h3>
+<div class="outline-text-3" id="text-1-2">
+<div class="org-src-container">
+<pre class="src src-sh">helm repo add bitnami https://charts.bitnami.com/bitnami
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-sh">helm install mykafka <span style="color: #2aa198;">\</span>
+  --set <span style="color: #6c71c4;">replicaCount</span>=3 <span style="color: #2aa198;">\</span>
+  --set <span style="color: #6c71c4;">defaultReplicationFactor</span>=3 <span style="color: #2aa198;">\</span>
+  --set <span style="color: #6c71c4;">offsetsTopicReplicationFactor</span>=3 <span style="color: #2aa198;">\</span>
+  --set <span style="color: #6c71c4;">transactionStateLogReplicationFactor</span>=3 <span style="color: #2aa198;">\</span>
+  --set <span style="color: #6c71c4;">transactionStateLogMinIsr</span>=3 <span style="color: #2aa198;">\</span>
+  --set persistence.storageClass=csi-rbd-sc <span style="color: #2aa198;">\</span>
+  bitnami/kafka
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-sh">kubectl run mykafka-client --restart=<span style="color: #2aa198;">'Never'</span> --image docker.io/bitnami/kafka:2.7.0-debian-10-r1 --namespace default --command -- sleep infinity
+kubectl exec --tty -i mykafka-client --namespace default -- bash
+
+kafka-console-producer.sh <span style="color: #2aa198;">\</span>
+
+        --broker-list mykafka-0.mykafka-headless.default.svc.cluster.local:9092,mykafka-1.mykafka-headless.default.svc.cluster.local:9092,mykafka-2.mykafka-headless.default.svc.cluster.local:9092 <span style="color: #2aa198;">\</span>
+        --topic test
+
+    kafka-console-consumer.sh <span style="color: #2aa198;">\</span>
+
+        --bootstrap-server mykafka.default.svc.cluster.local:9092 <span style="color: #2aa198;">\</span>
+        --topic test <span style="color: #2aa198;">\</span>
+        --from-beginning
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-orgb2b0465" class="outline-2">
+<h2 id="orgb2b0465"><span class="section-number-2">2</span> kafka 高可用的设计</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-orgae074cd" class="outline-3">
+<h3 id="orgae074cd"><span class="section-number-3">2.1</span> 副本机制</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+每个分区可以有多个副本，并且会从其副本集合（Assigned Replica, AR）中选出一个副本作为 Leader 副本，所有的读写请求都由选举出的 Leader 副本进行处理。剩下的其他副本都作为 Follower 副本，Follower 副本会从 Leader 副本出获取消息并更新到自己的 Log 中。下面讨论下引入副本后出现的问题以及 kafka 的解决方法。
+</p>
+</div>
+
+<div id="outline-container-org2390554" class="outline-4">
+<h4 id="org2390554"><span class="section-number-4">2.1.1</span> leader 是怎么选出来的？</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<p>
+分区的 leader 是由 controller 选出来的。controller 是一个 broker，集群里面第一个启动的 broker 通过在 zookeeper 里面创建一个临时节点 /controller 让自己成为 controller，其他的 broker 也会尝试创建这个临时节点，但是会收到一个「节点已存在」的异常，这样它们就意识到 controller 已经存在了。其他 broker 在 /controller 下创建 watch 对象，当 controller 断开跟 zookeeper 的链接后，临时节点消失，剩下的 broker 收到通知之后，会竞争成为下一个 controller。topic 创建的时候 controller 会从 broker 均衡分布首领的角度选出一个 partition 首领，再之后的复制过程中，能跟 leader 保持同步的集合记为 ISR（In-Sync Replica）,当 partition leader 失效时，从 ISR 中选出下一个 leader。
+</p>
+</div>
+</div>
+
+<div id="outline-container-orga9217fc" class="outline-4">
+<h4 id="orga9217fc"><span class="section-number-4">2.1.2</span> 写入什么时候 ack？</h4>
+<div class="outline-text-4" id="text-2-1-2">
+<p>
+有两个选择，第一，leader 写入成功就 ack，第二，所有 partition 写入成功之后 ack。leader 写入成功之后 ack 的话，如果 leader 在有副本成功复制之前挂了，那么数据就丢了。等所有的 partition 都写入成功再 ack，会导致写入的吞吐率下降，慢的 broker 会拖慢整体的性能。 kafka 的设计是提供一个配置项让用户选择是需要强一致性还是需要好的性能。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7c012fb" class="outline-4">
+<h4 id="org7c012fb"><span class="section-number-4">2.1.3</span> follower 如果跟不上 leader 怎么办？</h4>
+<div class="outline-text-4" id="text-2-1-3">
+<p>
+follower 跟不上 leader，比如 10s 都没有像 leader 发出获取数据的请求，或者 10s 内都没有请求最新的数据。那么 leader 就知道 follower 落后了，会将它移出 ISR 列表，它就不能参加选举成为新的 leader。consumer 可以看到的消息是 ISR 列表里面的所有 partition 都复制成功的消息的最大值，leader 用 HW （high watermark）来记录。
+</p>
+</div>
+</div>
+</div>
+</div>

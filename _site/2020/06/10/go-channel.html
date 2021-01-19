@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <title>Golang 学习：Chan</title>
+  <!-- link to main stylesheet -->
+  <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+  <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</head>
+
+
+  <body>
+    <article class="content">
+      <h1 class="post-title">Golang 学习：Chan</h1>
+      <p>
+        
+        
+        <a href="/blog/tags#golang" class="post-tag">Golang</a>
+        
+        
+      </p>
+
+      <div id="outline-container-org19fcd5e" class="outline-2">
+<h2 id="org19fcd5e"><span class="section-number-2">1</span> channel</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+channel 的作用是在 goroutine 间传递数据。channel 中的数据以 FIFO 的顺序传递，使用关键字 make 创建，使用关键字 close 关闭。make 时可以指定 channel 的容量，表示 channel 可以缓存多少条数据，不指定或者将容量设置为0时，只有发送端和接收端都 ready 时才能传递数据。指定容量为正数时，当 channel 不空时，接收方能获取到消息，当 channel 不满时，发送方能发送消息到 channel；否则的话，goroutine 陷入阻塞。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org48b2b0b" class="outline-2">
+<h2 id="org48b2b0b"><span class="section-number-2">2</span> 用法</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org3750023" class="outline-3">
+<h3 id="org3750023"><span class="section-number-3">2.1</span> 生产者消费者</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+producer 向 channel 发送消息，consumer 从 channel 取出消息消费。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">package</span> main
+
+<span style="color: #859900;">import</span> (
+        <span style="color: #2aa198;">"fmt"</span>
+        <span style="color: #2aa198;">"sync"</span>
+)
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        c := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #268bd2;">int</span>)
+        wg := sync.<span style="color: #268bd2;">WaitGroup</span>{}
+        wg.<span style="color: #b58900;">Add</span>(2)
+
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                <span style="color: #859900;">defer</span> wg.<span style="color: #b58900;">Done</span>()
+                s := []<span style="color: #268bd2;">int</span>{7, 2, 8, -9, 4, 0}
+
+                <span style="color: #859900;">for</span> _, num := <span style="color: #859900;">range</span> s {
+                        c &lt;- num
+                }
+                <span style="color: #6c71c4;">close</span>(c)
+        }()
+
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                <span style="color: #859900;">defer</span> wg.<span style="color: #b58900;">Done</span>()
+
+                <span style="color: #859900;">for</span> num := <span style="color: #859900;">range</span> c {
+                        fmt.<span style="color: #b58900;">Printf</span>(<span style="color: #2aa198;">"%+v,"</span>, num)
+                }
+        }()
+
+        wg.<span style="color: #b58900;">Wait</span>()
+}
+
+</pre>
+</div>
+
+<p>
+for .. range 会遍历 channel 直到 channel 关闭，如果我们把 close() 语句注释掉，那么会报出异常：
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">fatal error: all goroutines are asleep - deadlock!
+</pre>
+</div>
+<p>
+提示我们接收消息的 goroutine 阻塞，waitGroup 阻塞等待接收消息的 goroutine 退出，两个 goroutine 陷入了死锁。
+</p>
+
+<p>
+我们尝试使用另外一种方式写，在一个大循环下阻塞获取 channel 的消息，&lt;-chan 能返回读取到的是正常值还是零值。
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">package</span> main
+
+<span style="color: #859900;">import</span> (
+        <span style="color: #2aa198;">"fmt"</span>
+        <span style="color: #2aa198;">"sync"</span>
+)
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        c := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #268bd2;">int</span>, 10)
+        wg := sync.<span style="color: #268bd2;">WaitGroup</span>{}
+        wg.<span style="color: #b58900;">Add</span>(2)
+
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                <span style="color: #859900;">defer</span> wg.<span style="color: #b58900;">Done</span>()
+                s := []<span style="color: #268bd2;">int</span>{7, 2, 8, -9, 4, 0}
+
+                <span style="color: #859900;">for</span> _, num := <span style="color: #859900;">range</span> s {
+                        c &lt;- num
+                }
+                <span style="color: #6c71c4;">close</span>(c)
+        }()
+
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                <span style="color: #859900;">defer</span> wg.<span style="color: #b58900;">Done</span>()
+
+                <span style="color: #859900;">for</span> {
+                        num, ok := &lt;-c
+                        <span style="color: #859900;">if</span> ok {
+                                fmt.<span style="color: #b58900;">Printf</span>(<span style="color: #2aa198;">"%v,"</span>, num)
+                        } <span style="color: #859900;">else</span> {
+                                <span style="color: #859900;">break</span>
+                        }
+                }
+        }()
+
+        wg.<span style="color: #b58900;">Wait</span>()
+}
+
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org7087eed" class="outline-3">
+<h3 id="org7087eed"><span class="section-number-3">2.2</span> select 等待多个 channel</h3>
+<div class="outline-text-3" id="text-2-2">
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">package</span> main
+
+<span style="color: #859900;">import</span> (
+        <span style="color: #2aa198;">"fmt"</span>
+)
+
+<span style="color: #859900;">type</span> <span style="color: #268bd2;">WordCount</span> <span style="color: #859900;">struct</span> {
+        word  string
+        count int
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">map1</span>(c <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>) {
+        s := <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>{
+                <span style="color: #2aa198;">"apple"</span>: 1,
+                <span style="color: #2aa198;">"hello"</span>: 1,
+                <span style="color: #2aa198;">"world"</span>: 1,
+        }
+
+        <span style="color: #859900;">for</span> k, v := <span style="color: #859900;">range</span> s {
+                fmt.<span style="color: #b58900;">Printf</span>(<span style="color: #2aa198;">"key %v, value %v\n"</span>, k, v)
+                c &lt;- <span style="color: #268bd2;">WordCount</span>{k, v}
+        }
+        <span style="color: #6c71c4;">close</span>(c)
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"I'm done"</span>)
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">map2</span>(c <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>) {
+        s := <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>{
+                <span style="color: #2aa198;">"banana"</span>: 1,
+                <span style="color: #2aa198;">"hello"</span>:  1,
+                <span style="color: #2aa198;">"world"</span>:  1,
+        }
+
+        <span style="color: #859900;">for</span> k, v := <span style="color: #859900;">range</span> s {
+                fmt.<span style="color: #b58900;">Printf</span>(<span style="color: #2aa198;">"key %v, value %v\n"</span>, k, v)
+                c &lt;- <span style="color: #268bd2;">WordCount</span>{k, v}
+        }
+        <span style="color: #6c71c4;">close</span>(c)
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"me too"</span>)
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">reduce</span>(c1 <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>, c2 <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>, result <span style="color: #859900;">chan</span> <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>) {
+        tmp := <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>{}
+
+        <span style="color: #859900;">for</span> i := 0; i &lt; 6; i++ {
+                <span style="color: #859900;">select</span> {
+                <span style="color: #859900;">case</span> item1, ok := &lt;-c1:
+                        <span style="color: #859900;">if</span> ok {
+                                tmp[item1.word] = tmp[item1.word] + item1.count
+                        }
+
+                <span style="color: #859900;">case</span> item2, ok := &lt;-c2:
+                        <span style="color: #859900;">if</span> ok {
+                                tmp[item2.word] = tmp[item2.word] + item2.count
+                        }
+                }
+        }
+
+        result &lt;- tmp
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        c1 := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>)
+        c2 := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>)
+        result := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>, 1)
+
+        <span style="color: #859900;">go</span> <span style="color: #b58900;">map1</span>(c1)
+        <span style="color: #859900;">go</span> <span style="color: #b58900;">map2</span>(c2)
+        <span style="color: #859900;">go</span> <span style="color: #b58900;">reduce</span>(c1, c2, result)
+
+        total := &lt;-result
+        fmt.<span style="color: #b58900;">Printf</span>(<span style="color: #2aa198;">"total: %v"</span>, total)
+}
+
+</pre>
+</div>
+
+<p>
+我们也可以使用 WaitGroup 等待两个 channel 的消息被消耗完。
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">package</span> main
+
+<span style="color: #859900;">import</span> (
+        <span style="color: #2aa198;">"fmt"</span>
+        <span style="color: #2aa198;">"sync"</span>
+)
+
+<span style="color: #859900;">type</span> <span style="color: #268bd2;">WordCount</span> <span style="color: #859900;">struct</span> {
+        word  string
+        count int
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">map1</span>(c <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>) {
+        s := <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>{
+                <span style="color: #2aa198;">"apple"</span>: 1,
+                <span style="color: #2aa198;">"hello"</span>: 1,
+                <span style="color: #2aa198;">"world"</span>: 1,
+        }
+
+        <span style="color: #859900;">for</span> k, v := <span style="color: #859900;">range</span> s {
+                c &lt;- <span style="color: #268bd2;">WordCount</span>{k, v}
+        }
+        <span style="color: #6c71c4;">close</span>(c)
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">map2</span>(c <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>) {
+        s := <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>{
+                <span style="color: #2aa198;">"banana"</span>: 1,
+                <span style="color: #2aa198;">"hello"</span>:  1,
+                <span style="color: #2aa198;">"world"</span>:  1,
+        }
+
+        <span style="color: #859900;">for</span> k, v := <span style="color: #859900;">range</span> s {
+                c &lt;- <span style="color: #268bd2;">WordCount</span>{k, v}
+        }
+        <span style="color: #6c71c4;">close</span>(c)
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">reduce</span>(c1 <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>, c2 <span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>, result <span style="color: #859900;">chan</span> <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>) {
+        tmp := <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>{}
+
+        wg := sync.<span style="color: #268bd2;">WaitGroup</span>{}
+        wg.<span style="color: #b58900;">Add</span>(2)
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                <span style="color: #859900;">defer</span> wg.<span style="color: #b58900;">Done</span>()
+                <span style="color: #859900;">for</span> item := <span style="color: #859900;">range</span> c1 {
+                        tmp[item.word] = tmp[item.word] + item.count
+                }
+        }()
+
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                <span style="color: #859900;">defer</span> wg.<span style="color: #b58900;">Done</span>()
+                <span style="color: #859900;">for</span> item := <span style="color: #859900;">range</span> c2 {
+                        tmp[item.word] = tmp[item.word] + item.count
+                }
+        }()
+
+        wg.<span style="color: #b58900;">Wait</span>()
+        result &lt;- tmp
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        c1 := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>)
+        c2 := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #268bd2;">WordCount</span>)
+        result := <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">chan</span> <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">int</span>, 1)
+
+        <span style="color: #859900;">go</span> <span style="color: #b58900;">map1</span>(c1)
+        <span style="color: #859900;">go</span> <span style="color: #b58900;">map2</span>(c2)
+        <span style="color: #859900;">go</span> <span style="color: #b58900;">reduce</span>(c1, c2, result)
+
+        total := &lt;-result
+        fmt.<span style="color: #b58900;">Printf</span>(<span style="color: #2aa198;">"total: %v"</span>, total)
+}
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-org8662282" class="outline-2">
+<h2 id="org8662282"><span class="section-number-2">3</span> 小结</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li>发送方在完成数据的写入后，应该调用 close 关闭 channel，这样消息消费者可以知道消息已经全部处理完成</li>
+<li>for &#x2026; range 遍历 channel 直到 channel 关闭</li>
+<li>select 配合 channel 使用，当 select 的 channel ready 时，执行对应的 case；否则，如果有 default 语句执行 default 语句，没有就阻塞等待。</li>
+<li>_, ok &lt;-chan 可以判断 channel 是不是为空了</li>
+<li>WaitGroup 对象不是一个引用类型，在通过函数传值的时候需要使用地址</li>
+</ul>
+</div>
+</div>
+
+    </article>
+  </body>
+</html>

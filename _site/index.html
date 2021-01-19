@@ -67,6 +67,56 @@ Operator SDK 是构建 Kubernetes Operator 的工具，在 controller-runtime �
     
     <article class="post">
 	<h1 class="title">
+	    <a href="/2020/06/10/go-channel.html" title="Golang 学习：Chan">Golang 学习：Chan</a>
+	</h1>
+	<h2 class="date">
+	    <span>Jun 10, 2020</span>
+	</h2>
+
+	<!-- <div class="entry">
+	     <div id="outline-container-org19fcd5e" class="outline-2">
+<h2 id="org19fcd5e"><span class="section-number-2">1</span> channel</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+channel 的作用是在 goroutine 间传递数据。channel 中的数据以 FIFO 的顺序传递，使用关键字 make 创建，使用关键字 close 关闭。make 时可以指定 channel 的容量，表示 channel 可以缓存多少条数据，不指定或者将容量设置为0时，只有发送端和接收端都 ready 时才能传递数据。指定容量为正数时，当 channel 不空时，接收方能获取到消息，当 channel 不满时，发送方能发送消息到 channel；否则的话，goroutine 陷入阻塞。
+</p>
+</div>
+</div>
+
+
+	     </div>
+	     <a href="/2020/06/10/go-channel.html" class="read-more">阅读更多</a> -->
+
+    </article>
+    
+    <article class="post">
+	<h1 class="title">
+	    <a href="/2020/06/01/Kubernetes-%E9%83%A8%E7%BD%B2%E9%AB%98%E5%8F%AF%E7%94%A8-Kafka-%E9%9B%86%E7%BE%A4.html" title="Kubernetes 实战五：Kubernetes 部署高可用 Kafka 集群">Kubernetes 实战五：Kubernetes 部署高可用 Kafka 集群</a>
+	</h1>
+	<h2 class="date">
+	    <span>Jun 1, 2020</span>
+	</h2>
+
+	<!-- <div class="entry">
+	     <div id="outline-container-org68116d1" class="outline-2">
+<h2 id="org68116d1"><span class="section-number-2">1</span> Helm 安装 kafka 集群</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-orgb7ad749" class="outline-3">
+<h3 id="orgb7ad749"><span class="section-number-3">1.1</span> 准备存储</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+我们使用 ceph 的块设备为 kafka 和 zookeeper 提供存储。
+</p>
+
+
+	     </div>
+	     <a href="/2020/06/01/Kubernetes-%E9%83%A8%E7%BD%B2%E9%AB%98%E5%8F%AF%E7%94%A8-Kafka-%E9%9B%86%E7%BE%A4.html" class="read-more">阅读更多</a> -->
+
+    </article>
+    
+    <article class="post">
+	<h1 class="title">
 	    <a href="/2020/05/10/Kubenetes-%E4%BD%BF%E7%94%A8-s3fs-%E4%BA%8C.html" title="Kubernetes 实战四：Kubernetes 使用 s3fs （二）">Kubernetes 实战四：Kubernetes 使用 s3fs （二）</a>
 	</h1>
 	<h2 class="date">
