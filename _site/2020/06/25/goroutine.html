@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <title>Golang 学习：Goroutine</title>
+  <!-- link to main stylesheet -->
+  <link rel="stylesheet" type="text/css" href="/assets/css/main.css">
+  <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome-4.6.1/css/font-awesome.min.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</head>
+
+
+  <body>
+    <article class="content">
+      <h1 class="post-title">Golang 学习：Goroutine</h1>
+      <p>
+        
+        
+        <a href="/blog/tags#golang" class="post-tag">Golang</a>
+        
+        
+      </p>
+
+      <div id="outline-container-orgce58aaa" class="outline-2">
+<h2 id="orgce58aaa"><span class="section-number-2">1</span> goroutine 模型</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+goroutine 是由 Go runtime 调度的轻量级执行单元。goroutine 并发执行，启动的时候申请一个栈空间，多个 goroutine 共用进程的堆空间，goroutine 在运行过程中，根据需要申请和释放堆空间。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org064d548" class="outline-2">
+<h2 id="org064d548"><span class="section-number-2">2</span> goroutine 调度</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+goroutine 的数目比 os thread 的数目大得多，所以得设计一种方法复用 os 的线程。我能想到的一些 goroutine 到 thread 的调度需要考虑的场景：
+</p>
+<ul class="org-ul">
+<li>当 goroutine 对应的 thread 陷入阻塞，我们需要创建一个新的 thread 或者利用空闲的 thread 去执行我们的 goroutine 代码。</li>
+<li>goroutine 进入阻塞而对应的 os thread 没有，比如 goroutine 可以阻塞在 channel 通信上，而 os thread 还是可以执行的，需要为它找一个新的 goroutine 去执行。</li>
+</ul>
+</div>
+
+<div id="outline-container-org317b647" class="outline-3">
+<h3 id="org317b647"><span class="section-number-3">2.1</span> MPG 模型</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+M(Machine) 指的是 os thread，有内核调度
+G(Goroutine) 指的是调度的执行单元，在用户态
+P(Processor) 负责 M 和 G 的衔接
+</p>
+</div>
+
+<div id="outline-container-org9a0f28c" class="outline-4">
+<h4 id="org9a0f28c"><span class="section-number-4">2.1.1</span> P</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<ul class="org-ul">
+<li>P 维护了 G 的 runq 列表，新建的 goroutine 放到这个列表里面</li>
+<li>当 local run queue 满了，将新的 G 放到 global run queue 中</li>
+<li>当 P 被销毁时，把所有的 local runq 放到 global runq 中</li>
+<li>P 可以复用空闲的 M 或者创建新的 M</li>
+<li>为 M 寻找 P 的顺序：
+<ul class="org-ul">
+<li>特殊的 goroutine 比如 traceReader 或者 GCWorker 有没有空闲的</li>
+<li>global run queue 中找</li>
+<li>local run queue 中找</li>
+<li>从别的 goroutine 中抢一个</li>
+</ul></li>
+<li>抢占的条件是啥？
+<ul class="org-ul">
+<li>goroutine 阻塞了</li>
+<li>goroutine 在检查是否有抢占的请求</li>
+<li>goroutine 的的代码跑在一个 safe point 上（堆栈信息可以保存等）</li>
+</ul></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org950e174" class="outline-4">
+<h4 id="org950e174"><span class="section-number-4">2.1.2</span> G</h4>
+<div class="outline-text-4" id="text-2-1-2">
+<ul class="org-ul">
+<li>G 维护程序的指针 pc 和栈指针 sp</li>
+<li>G 退出后调用 schedule() 进行下一次调度</li>
+<li>G 阻塞的时候把自己放到 P 的 runq 或者 global runq 等待调度</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orge67e143" class="outline-4">
+<h4 id="orge67e143"><span class="section-number-4">2.1.3</span> M</h4>
+<div class="outline-text-4" id="text-2-1-3">
+<ul class="org-ul">
+<li>总是留着一个 M 去等待新的 G，其他的 M 可以进入休眠，以维持一个性能和功耗的平衡</li>
+<li>当 M 陷入阻塞的时候或者 exit 时，将对应的 P 交出去给其他的 M</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orge68e2d9" class="outline-3">
+<h3 id="orge68e2d9"><span class="section-number-3">2.2</span> 一段 goroutine 的执行</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+hello.go
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">package</span> main
+
+<span style="color: #859900;">import</span> (
+        <span style="color: #2aa198;">"fmt"</span>
+        <span style="color: #2aa198;">"time"</span>
+)
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"Start"</span>)
+
+        <span style="color: #859900;">go</span> <span style="color: #859900;">func</span>() {
+                fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"Hello World"</span>)
+        }()
+
+        time.<span style="color: #b58900;">Sleep</span>(1 * time.Second)
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"Stop"</span>)
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-sh">go build -o hello hello.go
+</pre>
+</div>
+
+<p>
+go build 的时候会把 golang 的运行时也编译进来，golang 的运行时负责系统的 goroutine 和我们编写的 goroutine 的调度。sched 启动起来之后会把 main 这个 goroutine 放到队列里面，然后启动一个 M，然后开始一轮调度。main 调度到创建好的 M 运行起来，创建了另一个 goroutine，放到了跟 main 同一个 P 的 runq 里面，等待调度，然后运行到了 time.Sleep 陷入阻塞。"main" 被移出 runnable 队列。这个时候 "print" 这个 goroutine 有两种可能，一种是被别的 P 抢走调度，一种是 P 找了一个新的 M。"print" 这个 goroutine 调度执行完成之后，就退出了，这个时候对应的 M 就进入了休眠，"main" 这个 goroutine 在系统调用完成之后变成 runnable 重新回到调度队列，继续执行直到退出。
+</p>
+</div>
+</div>
+</div>
+
+    </article>
+  </body>
+</html>
