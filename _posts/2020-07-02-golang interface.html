@@ -1,0 +1,168 @@
+---
+layout: post
+title: Golang 学习：Interface
+tag: Golang
+---
+
+<div id="outline-container-org045f8fe" class="outline-2">
+<h2 id="org045f8fe"><span class="section-number-2">1</span> Interface</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+golang 的 interface 是 duck typing 的，不用显式地声明
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">type</span> <span style="color: #268bd2;">I</span> <span style="color: #859900;">interface</span> {
+        <span style="color: #b58900;">Get</span>(string) string
+        <span style="color: #b58900;">Put</span>(string, string)
+}
+
+<span style="color: #859900;">type</span> <span style="color: #268bd2;">KV</span> <span style="color: #859900;">struct</span> {
+        store <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">string</span>
+}
+
+<span style="color: #859900;">func</span> (kv <span style="color: #268bd2;">KV</span>) <span style="color: #b58900;">Get</span>(key <span style="color: #268bd2;">string</span>) <span style="color: #268bd2;">string</span> {
+        <span style="color: #859900;">return</span> kv.store[key]
+}
+
+<span style="color: #859900;">func</span> (kv <span style="color: #268bd2;">KV</span>) <span style="color: #b58900;">Put</span>(key <span style="color: #268bd2;">string</span>, value <span style="color: #268bd2;">string</span>) {
+        kv.store[key] = value
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">useKV</span>(kv <span style="color: #268bd2;">I</span>) {
+        kv.<span style="color: #b58900;">Put</span>(<span style="color: #2aa198;">"hello"</span>, <span style="color: #2aa198;">"world"</span>)
+        result := kv.<span style="color: #b58900;">Get</span>(<span style="color: #2aa198;">"hello"</span>)
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"key: hello, value:"</span>, result)
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        mykv := <span style="color: #268bd2;">KV</span>{store: <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">string</span>)}
+        <span style="color: #b58900;">useKV</span>(mykv)
+}
+</pre>
+</div>
+
+<p>
+类型可以推断出来，可以做断言，可以使用 switch 分类讨论
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">type</span> <span style="color: #268bd2;">I</span> <span style="color: #859900;">interface</span> {
+        <span style="color: #b58900;">Get</span>(string) string
+        <span style="color: #b58900;">Put</span>(string, string)
+}
+
+<span style="color: #859900;">type</span> <span style="color: #268bd2;">KV</span> <span style="color: #859900;">struct</span> {
+        store <span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">string</span>
+}
+
+<span style="color: #859900;">func</span> (kv <span style="color: #268bd2;">KV</span>) <span style="color: #b58900;">Get</span>(key <span style="color: #268bd2;">string</span>) <span style="color: #268bd2;">string</span> {
+        <span style="color: #859900;">return</span> kv.store[key]
+}
+
+<span style="color: #859900;">func</span> (kv <span style="color: #268bd2;">KV</span>) <span style="color: #b58900;">Put</span>(key <span style="color: #268bd2;">string</span>, value <span style="color: #268bd2;">string</span>) {
+        kv.store[key] = value
+}
+
+<span style="color: #859900;">type</span> <span style="color: #268bd2;">YAKV</span> <span style="color: #859900;">struct</span>{}
+
+<span style="color: #859900;">func</span> (kv <span style="color: #268bd2;">YAKV</span>) <span style="color: #b58900;">Get</span>(key <span style="color: #268bd2;">string</span>) <span style="color: #268bd2;">string</span> {
+        <span style="color: #859900;">return</span> <span style="color: #2aa198;">"fool"</span>
+}
+
+<span style="color: #859900;">func</span> (kv <span style="color: #268bd2;">YAKV</span>) <span style="color: #b58900;">Put</span>(key <span style="color: #268bd2;">string</span>, value <span style="color: #268bd2;">string</span>) {
+        <span style="color: #93a1a1; font-style: italic;">// </span><span style="color: #93a1a1; font-style: italic;">Do nothing</span>
+        <span style="color: #859900;">return</span>
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">useKV</span>(kv <span style="color: #268bd2;">I</span>) {
+        kv.<span style="color: #b58900;">Put</span>(<span style="color: #2aa198;">"hello"</span>, <span style="color: #2aa198;">"world"</span>)
+        result := kv.<span style="color: #b58900;">Get</span>(<span style="color: #2aa198;">"hello"</span>)
+        <span style="color: #859900;">switch</span> kv.(<span style="color: #859900;">type</span>) {
+        <span style="color: #859900;">case</span> KV:
+                fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"You can trust the result"</span>)
+        <span style="color: #859900;">case</span> YAKV:
+                fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"You'd better watch out"</span>)
+        <span style="color: #859900;">default</span>:
+                fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"Unknown"</span>)
+        }
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"key: hello, value:"</span>, result)
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        kv1 := <span style="color: #268bd2;">KV</span>{store: <span style="color: #6c71c4;">make</span>(<span style="color: #859900;">map</span>[<span style="color: #268bd2;">string</span>]<span style="color: #268bd2;">string</span>)}
+        kv2 := <span style="color: #268bd2;">YAKV</span>{}
+
+        <span style="color: #b58900;">useKV</span>(kv1)
+        <span style="color: #b58900;">useKV</span>(kv2)
+}
+</pre>
+</div>
+
+<p>
+Interface 的作用是在 func 调用间做约定，说人话就是我期望输入的参数能干xx事情，不管它的类型是什么，约定的是它的行为，忽略它的类型。
+</p>
+<ul class="org-ul">
+<li>输入的参数是个 Interface，作用是写出一个通用的算法</li>
+<li>输出一个 Interface，作用是隐藏实现的细节</li>
+</ul>
+
+<p>
+除了使用定义行为的 Interface 之外，golang 还用空 interface。空 interface 啥也不约定，意思是，传入任何类型的参数都可以，目的是为了实现某种程度上的泛型。
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #859900;">package</span> main
+
+<span style="color: #859900;">import</span> (
+        <span style="color: #2aa198;">"errors"</span>
+        <span style="color: #2aa198;">"fmt"</span>
+)
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">Add</span>(a <span style="color: #859900;">interface</span>{}, b <span style="color: #859900;">interface</span>{}) (<span style="color: #859900;">interface</span>{}, <span style="color: #268bd2;">error</span>) {
+
+        <span style="color: #859900;">switch</span> a.(<span style="color: #859900;">type</span>) {
+        <span style="color: #859900;">case</span> int:
+                {
+                        <span style="color: #859900;">if</span> bValue, ok := b.(<span style="color: #268bd2;">int</span>); ok {
+                                <span style="color: #859900;">return</span> a.(<span style="color: #268bd2;">int</span>) + bValue, <span style="color: #268bd2;">nil</span>
+                        } <span style="color: #859900;">else</span> {
+                                <span style="color: #859900;">return</span> <span style="color: #268bd2;">nil</span>, errors.<span style="color: #b58900;">New</span>(<span style="color: #2aa198;">"Must be same type"</span>)
+                        }
+                }
+
+        <span style="color: #859900;">case</span> string:
+                {
+                        <span style="color: #859900;">if</span> bValue, ok := b.(<span style="color: #268bd2;">string</span>); ok {
+                                <span style="color: #859900;">return</span> a.(<span style="color: #268bd2;">string</span>) + <span style="color: #2aa198;">" "</span> + bValue, <span style="color: #268bd2;">nil</span>
+                        } <span style="color: #859900;">else</span> {
+                                <span style="color: #859900;">return</span> <span style="color: #268bd2;">nil</span>, errors.<span style="color: #b58900;">New</span>(<span style="color: #2aa198;">"Must be same type"</span>)
+                        }
+                }
+
+        <span style="color: #859900;">default</span>:
+                <span style="color: #859900;">return</span> <span style="color: #268bd2;">nil</span>, errors.<span style="color: #b58900;">New</span>(<span style="color: #2aa198;">"Unknown type"</span>)
+        }
+
+        <span style="color: #859900;">return</span> 0, <span style="color: #268bd2;">nil</span>
+}
+
+<span style="color: #859900;">func</span> <span style="color: #b58900;">main</span>() {
+        r1, _ := <span style="color: #b58900;">Add</span>(1, 2)
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"1 + 2 = "</span>, r1)
+
+        r2, _ := <span style="color: #b58900;">Add</span>(<span style="color: #2aa198;">"hello"</span>, <span style="color: #2aa198;">"wolrd"</span>)
+        fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"hello + world = "</span>, r2)
+
+        r3, err := <span style="color: #b58900;">Add</span>(1, <span style="color: #2aa198;">"hello"</span>)
+        <span style="color: #859900;">if</span> err != <span style="color: #268bd2;">nil</span> {
+                fmt.<span style="color: #b58900;">Println</span>(err)
+        } <span style="color: #859900;">else</span> {
+                fmt.<span style="color: #b58900;">Println</span>(<span style="color: #2aa198;">"1 + hello = "</span>, r3)
+        }
+}
+</pre>
+</div>
+
+<p>
+这样写起来很麻烦，不如每个类型都写一遍实现，还能利用编译器的静态类型检查。
+</p>
+</div>
+</div>
