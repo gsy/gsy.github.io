@@ -4,6 +4,10 @@ title = 'GitHub的MySQL高可用性实践'
 category = 'system design'
 +++
 
-## origin content
+## 原文链接
 https://github.blog/engineering/mysql-high-availability-at-github/
+
+
+## 白板工具
+https://excalidraw.com/
 
