@@ -1,6 +1,7 @@
 baseURL: "https://gsy.github.io/"
-languageCode: "en-us"
+languageCode: "zh-cn"
 title: "北海小岛"
+theme: "ananke"
 
 caches:
   images:
