@@ -1,0 +1,7 @@
+baseURL: "https://gsy.github.io/"
+languageCode: "en-us"
+title: "北海小岛"
+
+caches:
+  images:
+    dir: :cacheDir/images
